@@ -25,4 +25,18 @@ public class BitMap {
         }
         return bitMap;
     }
+
+    public void setBit(int index) {
+        occupied[index] = index;
+    }
+
+    public LogicalBlock asBlock(int numberOfBlocks) {
+        LogicalBlock block = new LogicalBlock(numberOfBlocks);
+        for (int i = 0; i < occupied.length; i++) {
+            block.setInt(i, occupied[i]);
+        }
+        return block;
+    }
+
+
 }

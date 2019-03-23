@@ -1,5 +1,7 @@
 package main.io;
 
+import main.util.Util;
+
 import java.util.Arrays;
 
 public class LogicalBlock {
@@ -25,11 +27,15 @@ public class LogicalBlock {
     }
 
     public int getInt(int index) {
-        // todo bounds check
-        return bytes[index] << 24 |
-                (bytes[index + 1] & 0xFF) << 16 |
-                (bytes[index + 2] & 0xFF) << 8 |
-                (bytes[index + 3] & 0xFF);
+        return Util.getIntByBytes(bytes[index], bytes[index + 1], bytes[index + 2], bytes[index + 3]);
+    }
+
+    public void setInt(int index, int data) {
+        byte[] result = Util.getBytesByInt(data);
+        bytes[index] = result[0];
+        bytes[index + 1] = result[1];
+        bytes[index + 2] = result[2];
+        bytes[index + 3] = result[3];
     }
 
     LogicalBlock getCopy() {

@@ -1,7 +1,11 @@
 package main.fs;
 
 import main.io.IOSystem;
+import main.io.LogicalBlock;
+import main.util.Config;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -11,8 +15,29 @@ public class FileSystem {
 
     private IOSystem ioSystem;
 
+    public FileSystem() {
+        ioSystem = new IOSystem();
+
+        int numberOfBlocks = Integer.parseInt(Config.INSTANCE.getProperty("blocks"));
+        BitMap bitMap = new BitMap(numberOfBlocks);
+        ioSystem.saveBitmapToBlock(0, bitMap);
+
+        FileDescriptor directory = new FileDescriptor(0);
+//        ioSystem.writeBlock();
+    }
+
     public void create(String name) {
         LOGGER.log(Level.INFO, String.format("Create: name=%s", name));
+
+        BitMap bitMap = ioSystem.loadBitmapFromBlock(0);
+
+        List<FileDescriptor> descriptors = ioSystem.loadFileDescriptorsFromBlock(1);
+        FileDescriptor directory = descriptors.get(0);
+
+        byte[] bytes = ioSystem.loadDataByDescriptor(directory);
+        System.out.println(Arrays.toString(bytes));
+
+        ioSystem.saveBitmapToBlock(0, bitMap);
     }
 
     public void destroy(String name) {

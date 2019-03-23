@@ -18,4 +18,16 @@ public class FileDescriptor {
             blockIndexes.add(index);
         }
     }
+
+    public List<Integer> getBlockIndexes() {
+        return blockIndexes;
+    }
+
+    public int getLength() {
+        return length;
+    }
+
+//    public byte[] asBytes() {
+//
+//    }
 }
