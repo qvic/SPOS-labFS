@@ -1,7 +1,9 @@
 package main.fs;
 
+import main.exceptions.FileIsFullException;
 import main.io.IOSystem;
 import main.io.LogicalBlock;
+import main.oft.OpenFileTable;
 import main.util.Config;
 
 import java.util.Arrays;
@@ -13,31 +15,55 @@ public class FileSystem {
 
     private static final Logger LOGGER = Logger.getLogger(FileSystem.class.getName());
 
-    private IOSystem ioSystem;
+    private static final int BLOCKS_FOR_DESCRIPTORS = Integer.parseInt(Config.INSTANCE.getProperty("blocksForDescriptors"));
+
+    private final OpenFileTable oft;
+    private final IOSystem ioSystem;
 
     public FileSystem() {
         ioSystem = new IOSystem();
+        oft = new OpenFileTable(ioSystem);
 
+        // filling some data for tests
         int numberOfBlocks = Integer.parseInt(Config.INSTANCE.getProperty("blocks"));
-        BitMap bitMap = new BitMap(numberOfBlocks);
-        ioSystem.saveBitmapToBlock(0, bitMap);
+        BitMap bitMap = BitMap.fromBlock(numberOfBlocks, ioSystem.readBlock(0));
+        bitMap.setOccupied(63);
+        ioSystem.writeBlock(0, bitMap.asBlock());
 
-        FileDescriptor directory = new FileDescriptor(0);
-//        ioSystem.writeBlock();
+        bitMap = BitMap.fromBlock(numberOfBlocks, ioSystem.readBlock(0));
+        System.out.println(bitMap);
+
+        FileDescriptor newDescriptor = new FileDescriptor(1);
+
+        LogicalBlock newBlock = new LogicalBlock();
+
+        byte[] bytes = "Hello world".getBytes();
+        for (int i = 0; i < bytes.length; i++) {
+            newBlock.setByte(i, bytes[i]);
+        }
+
+        ioSystem.writeBlock(7, newBlock);
+        newDescriptor.add(7);
+
+        LogicalBlock block = ioSystem.readBlock(1);
+        newDescriptor.insertToBlock(block, 0);
+        ioSystem.writeBlock(1, block);
+
+        FileDescriptor directoryDescriptor = FileDescriptor.fromBlock(ioSystem.readBlock(1), 0);
+//        Directory directory = new Directory(directoryDescriptor);
+
+        List<Integer> blockIndexes = directoryDescriptor.getBlockIndexes();
+        for (Integer blockIndex : blockIndexes) {
+            System.out.println(ioSystem.readBlock(blockIndex));
+        }
+
+        //
+
+
     }
 
     public void create(String name) {
         LOGGER.log(Level.INFO, String.format("Create: name=%s", name));
-
-        BitMap bitMap = ioSystem.loadBitmapFromBlock(0);
-
-        List<FileDescriptor> descriptors = ioSystem.loadFileDescriptorsFromBlock(1);
-        FileDescriptor directory = descriptors.get(0);
-
-        byte[] bytes = ioSystem.loadDataByDescriptor(directory);
-        System.out.println(Arrays.toString(bytes));
-
-        ioSystem.saveBitmapToBlock(0, bitMap);
     }
 
     public void destroy(String name) {
@@ -74,5 +100,29 @@ public class FileSystem {
 
     public void save(String name) {
         LOGGER.log(Level.INFO, String.format("Save: name=%s", name));
+    }
+
+    private void write(FileDescriptor descriptor, byte[] bytes) throws FileIsFullException {
+        int length = descriptor.getLength();
+        int blockSize = Integer.parseInt(Config.INSTANCE.getProperty("blockSize"));
+        int blockIndicesInDescriptor = Integer.parseInt(Config.INSTANCE.getProperty("blockIndicesInDescriptor"));
+
+        List<Integer> blockIndexes = descriptor.getBlockIndexes();
+
+        int blockToWrite = length / blockSize;
+
+        if (blockIndexes.size() <= blockToWrite) {
+
+            if (blockIndexes.size() < blockIndicesInDescriptor) {
+                int newBlockIndex = findFreeBlock();
+                blockIndexes.add(newBlockIndex);
+            } else {
+                throw new FileIsFullException();
+            }
+        }
+    }
+
+    private int findFreeBlock() {
+        return 0;
     }
 }

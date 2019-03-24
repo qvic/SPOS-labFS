@@ -18,4 +18,8 @@ public class Util {
         result[3] = (byte) data;
         return result;
     }
+
+    public static int ceilOfDivision(int a, int b) {
+        return (a + b - 1) / b;
+    }
 }
