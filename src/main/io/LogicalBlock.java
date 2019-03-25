@@ -19,7 +19,7 @@ public class LogicalBlock {
         if (bytes.length != BLOCK_SIZE) {
             throw new IllegalArgumentException("Bytes array must be same size as block");
         }
-        this.bytes = bytes;
+        this.bytes = Arrays.copyOf(bytes, bytes.length);
     }
 
     public int getBlockSize() {
@@ -54,7 +54,7 @@ public class LogicalBlock {
 
     LogicalBlock getCopy() {
         LogicalBlock copy = new LogicalBlock();
-        copy.bytes = Arrays.copyOf(bytes, BLOCK_SIZE);
+        copy.bytes = getBytes();
         return copy;
     }
 

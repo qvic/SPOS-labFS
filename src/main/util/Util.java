@@ -1,5 +1,7 @@
 package main.util;
 
+import java.util.Arrays;
+
 public class Util {
 
     public static int getIntByBytes(byte a, byte b, byte c, byte d) {
@@ -21,5 +23,13 @@ public class Util {
 
     public static int ceilOfDivision(int a, int b) {
         return (a + b - 1) / b;
+    }
+
+    public static String toBinaryString(boolean[] array) {
+        StringBuilder stringBuilder = new StringBuilder();
+        for (boolean b : array) {
+            stringBuilder.append(b ? '1' : '0');
+        }
+        return stringBuilder.toString();
     }
 }

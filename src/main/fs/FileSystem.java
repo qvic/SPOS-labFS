@@ -24,30 +24,18 @@ public class FileSystem {
         ioSystem = new IOSystem();
         oft = new OpenFileTable(ioSystem);
 
-        // filling some data for tests
-        int numberOfBlocks = Integer.parseInt(Config.INSTANCE.getProperty("blocks"));
-        BitMap bitMap = BitMap.fromBlock(numberOfBlocks, ioSystem.readBlock(0));
-        bitMap.setOccupied(63);
-        ioSystem.writeBlock(0, bitMap.asBlock());
+//        int numberOfBlocks = Integer.parseInt(Config.INSTANCE.getProperty("blocks"));
+//        BitMap bitMap = BitMap.fromBlock(numberOfBlocks, ioSystem.readBlock(0));
+//        bitMap.setOccupied(0);
+//        bitMap.setOccupied(1);
+//        ioSystem.writeBlock(0, bitMap.asBlock());
 
-        bitMap = BitMap.fromBlock(numberOfBlocks, ioSystem.readBlock(0));
-        System.out.println(bitMap);
+//        testing
+//        bitMap = BitMap.fromBlock(numberOfBlocks, ioSystem.readBlock(0));
+//        System.out.println(bitMap);
 
-        FileDescriptor newDescriptor = new FileDescriptor(1);
 
-        LogicalBlock newBlock = new LogicalBlock();
-
-        byte[] bytes = "Hello world".getBytes();
-        for (int i = 0; i < bytes.length; i++) {
-            newBlock.setByte(i, bytes[i]);
-        }
-
-        ioSystem.writeBlock(7, newBlock);
-        newDescriptor.add(7);
-
-        LogicalBlock block = ioSystem.readBlock(1);
-        newDescriptor.insertToBlock(block, 0);
-        ioSystem.writeBlock(1, block);
+//        oft.add("new");
 
         FileDescriptor directoryDescriptor = FileDescriptor.fromBlock(ioSystem.readBlock(1), 0);
 //        Directory directory = new Directory(directoryDescriptor);
@@ -100,29 +88,5 @@ public class FileSystem {
 
     public void save(String name) {
         LOGGER.log(Level.INFO, String.format("Save: name=%s", name));
-    }
-
-    private void write(FileDescriptor descriptor, byte[] bytes) throws FileIsFullException {
-        int length = descriptor.getLength();
-        int blockSize = Integer.parseInt(Config.INSTANCE.getProperty("blockSize"));
-        int blockIndicesInDescriptor = Integer.parseInt(Config.INSTANCE.getProperty("blockIndicesInDescriptor"));
-
-        List<Integer> blockIndexes = descriptor.getBlockIndexes();
-
-        int blockToWrite = length / blockSize;
-
-        if (blockIndexes.size() <= blockToWrite) {
-
-            if (blockIndexes.size() < blockIndicesInDescriptor) {
-                int newBlockIndex = findFreeBlock();
-                blockIndexes.add(newBlockIndex);
-            } else {
-                throw new FileIsFullException();
-            }
-        }
-    }
-
-    private int findFreeBlock() {
-        return 0;
     }
 }

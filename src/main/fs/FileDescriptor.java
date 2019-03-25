@@ -12,6 +12,10 @@ public class FileDescriptor {
     private static int MAX_BLOCK_INDICES = Integer.parseInt(Config.INSTANCE.getProperty("blockIndicesInDescriptor"));
     private static int BLOCK_SIZE = Integer.parseInt(Config.INSTANCE.getProperty("blockSize"));
 
+    public void setLength(int length) {
+        this.length = length;
+    }
+
     private int length;
     private List<Integer> blockIndexes;
 
@@ -38,9 +42,9 @@ public class FileDescriptor {
     }
 
     public int[] asInts() {
-        int blockIndicesInDescriptor = Util.ceilOfDivision(length, BLOCK_SIZE);
+        int blockIndicesInDescriptor = length / BLOCK_SIZE + 1;
 
-        if (blockIndicesInDescriptor != blockIndexes.size()) {
+        if (blockIndexes.size() > 1 && blockIndicesInDescriptor != blockIndexes.size()) {
             throw new IllegalStateException("Length is not correct");
         }
 
@@ -59,7 +63,7 @@ public class FileDescriptor {
     public static FileDescriptor fromBlock(LogicalBlock block, int positionInBlock) {
         int intPositionInBlock = (1 + MAX_BLOCK_INDICES) * positionInBlock;
         int length = block.getInt(intPositionInBlock);
-        int blockIndicesInDescriptor = Util.ceilOfDivision(length, BLOCK_SIZE);
+        int blockIndicesInDescriptor = length / BLOCK_SIZE + 1;
 
         FileDescriptor descriptor = new FileDescriptor(length);
         for (int i = 0; i < blockIndicesInDescriptor; i++) {

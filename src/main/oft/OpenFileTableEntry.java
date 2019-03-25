@@ -1,48 +1,62 @@
 package main.oft;
 
-import main.fs.FileDescriptor;
-import main.io.IOSystem;
-import main.io.LogicalBlock;
+import main.exceptions.BlockIsFullException;
 import main.util.Config;
 
 public class OpenFileTableEntry {
 
     private static final int BLOCK_SIZE = Integer.parseInt(Config.INSTANCE.getProperty("blockSize"));
 
+    private int currentPositionInBuffer;
     private byte[] buffer;
+    private int fileLength;
     private int descriptorIndex;
-    private int currentPosition;
-    private IOSystem ioSystem;
+    private int currentPositionInFile;
 
-    public OpenFileTableEntry(int descriptorIndex, IOSystem ioSystem) {
-        this.ioSystem = ioSystem;
-        this.buffer = new byte[BLOCK_SIZE];
-        this.descriptorIndex = descriptorIndex;
-        this.currentPosition = 0;
+    public int getFileLength() {
+        return fileLength;
     }
 
-    public void writeToBuffer(byte data) {
+    public int getDescriptorIndex() {
+        return descriptorIndex;
+    }
 
-        if (currentPosition == BLOCK_SIZE) {
-            int descriptorsInBlock = Integer.parseInt(Config.INSTANCE.getProperty("descriptorsInBlock"));
-            LogicalBlock descriptorBlock = ioSystem.readBlock(descriptorIndex / descriptorsInBlock + 1);
-            int nextBlockIndexInDescriptor = currentPosition / BLOCK_SIZE;
+    public int getCurrentPositionInFile() {
+        return currentPositionInFile;
+    }
 
-            int previousBlockIndex = FileDescriptor
-                    .fromBlock(descriptorBlock, descriptorIndex % descriptorsInBlock)
-                    .getBlockIndexes()
-                    .get(nextBlockIndexInDescriptor - 1);
+    public OpenFileTableEntry(int descriptorIndex, int fileLength) {
+        this.fileLength = fileLength;
+        this.buffer = new byte[BLOCK_SIZE];
+        this.descriptorIndex = descriptorIndex;
+        this.currentPositionInFile = 0;
+        this.currentPositionInBuffer = 0;
+    }
 
-            int nextBlockIndex = FileDescriptor
-                    .fromBlock(descriptorBlock, descriptorIndex % descriptorsInBlock)
-                    .getBlockIndexes()
-                    .get(nextBlockIndexInDescriptor);
+    public byte[] getBuffer() {
+        return buffer;
+    }
 
-            ioSystem.writeBlock(previousBlockIndex, new LogicalBlock(buffer));
-            buffer = ioSystem.readBlock(nextBlockIndex).getBytes();
+    public void writeToBuffer(byte data) throws BlockIsFullException {
+
+        if (currentPositionInBuffer == BLOCK_SIZE) {
+            throw new BlockIsFullException();
         }
-        int positionInBuffer = currentPosition % BLOCK_SIZE;
-        buffer[positionInBuffer] = data;
-        currentPosition++;
+
+        buffer[currentPositionInBuffer] = data;
+        currentPositionInFile++;
+        currentPositionInBuffer++;
+
+        if (currentPositionInFile > fileLength) {
+            fileLength = currentPositionInFile;
+        }
+    }
+
+    public void setBuffer(byte[] bytes) {
+        if (bytes.length != BLOCK_SIZE) {
+            throw new IllegalArgumentException("Bytes array must be same size as block");
+        }
+        buffer = bytes;
+        currentPositionInBuffer = 0;
     }
 }
