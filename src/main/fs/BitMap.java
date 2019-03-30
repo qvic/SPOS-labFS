@@ -47,11 +47,11 @@ public class BitMap {
     }
 
     public void setOccupied(int index){
-        bitMap[index/32]=bitMap[index/32]&mask2[index%32];
+        bitMap[index/32]=bitMap[index/32]|mask[index%32];
     }
 
    public void setFree(int index) {
-       bitMap[index/32]=bitMap[index/32]|mask[index%32];
+       bitMap[index/32]=bitMap[index/32]&mask2[index%32];
    }
 
 
