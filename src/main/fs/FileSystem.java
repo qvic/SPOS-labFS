@@ -24,19 +24,6 @@ public class FileSystem {
         ioSystem = new IOSystem();
         oft = new OpenFileTable(ioSystem);
 
-//        int numberOfBlocks = Integer.parseInt(Config.INSTANCE.getProperty("blocks"));
-//        BitMap bitMap = BitMap.fromBlock(numberOfBlocks, ioSystem.readBlock(0));
-//        bitMap.setOccupied(0);
-//        bitMap.setOccupied(1);
-//        ioSystem.writeBlock(0, bitMap.asBlock());
-
-//        testing
-//        bitMap = BitMap.fromBlock(numberOfBlocks, ioSystem.readBlock(0));
-//        System.out.println(bitMap);
-
-
-//        oft.add("new");
-
         FileDescriptor directoryDescriptor = FileDescriptor.fromBlock(ioSystem.readBlock(1), 0);
 //        Directory directory = new Directory(directoryDescriptor);
 
@@ -44,10 +31,6 @@ public class FileSystem {
         for (Integer blockIndex : blockIndexes) {
             System.out.println(ioSystem.readBlock(blockIndex));
         }
-
-        //
-
-
     }
 
     public void create(String name) {
