@@ -7,65 +7,61 @@ import java.util.Arrays;
 
 public class BitMap {
 
-    private int[] bitMap;
-    private int[] mask;
-    private int[] mask2;
+    private boolean[] occupied;
 
     public BitMap(int numberOfBlocks) {
-        int intsNeeded = numberOfBlocks / 32 + 1;
-        this.bitMap = new int[intsNeeded];
-        mask = new int[32];
-        mask2 = new int[32];
-        mask[31] = 1;
-        mask2[31] = ~mask[31];
-        for (int i = 30; i >= 0; i--) {
-            mask[i] = mask[i + 1] << 1;
-            mask2[i] = ~mask[i];
+        int intsNeeded = numberOfBlocks / 32;
 
-        }
+        this.occupied = new boolean[numberOfBlocks];
     }
 
     public boolean isFreeBlock(int index) {
-        return ((bitMap[index / 32] & mask[index % 32]) == 0);
+        return !occupied[index];
     }
 
     public static BitMap fromBlock(int numberOfBlocks, LogicalBlock block) {
         BitMap bitMap = new BitMap(numberOfBlocks);
 
-        for (int i = 0; i < numberOfBlocks / 32 + 1; i++) {
-            bitMap.bitMap[i] = block.getInt(i);
+        for (int i = 0; i < 8; i++) {
+            byte b = block.getByte(i);
+            bitMap.occupied[i * 8 + 7] = ((b & 0b10000000) != 0);
+            bitMap.occupied[i * 8 + 6] = ((b & 0b01000000) != 0);
+            bitMap.occupied[i * 8 + 5] = ((b & 0b00100000) != 0);
+            bitMap.occupied[i * 8 + 4] = ((b & 0b00010000) != 0);
+            bitMap.occupied[i * 8 + 3] = ((b & 0b00001000) != 0);
+            bitMap.occupied[i * 8 + 2] = ((b & 0b00000100) != 0);
+            bitMap.occupied[i * 8 + 1] = ((b & 0b00000010) != 0);
+            bitMap.occupied[i * 8 + 0] = ((b & 0b00000001) != 0);
         }
 
-        System.out.println(Arrays.toString(bitMap.bitMap));
+        System.out.println(Arrays.toString(bitMap.occupied));
         return bitMap;
     }
 
     public void setOccupied(int index) {
-        System.out.println("Setting bitmap " + index);
-        System.out.println(toString());
-        bitMap[index / 32] = bitMap[index / 32] & mask2[index % 32];
-        System.out.println(toString());
+        occupied[index] = true;
     }
 
     public void setFree(int index) {
-        bitMap[index / 32] = bitMap[index / 32] | mask[index % 32];
+        occupied[index] = false;
     }
 
     public LogicalBlock asBlock() {
         LogicalBlock block = new LogicalBlock();
-        for (int i = 0; i < bitMap.length; i++) {
-            block.setInt(i, bitMap[i]);
+        for (int i = 0; i < 8; i++) {
+            block.setByte(i, (byte) (
+                    (occupied[i * 8 + 7] ? 1 << 7 : 0) + (occupied[i * 8 + 6] ? 1 << 6 : 0) +
+                            (occupied[i * 8 + 5] ? 1 << 5 : 0) + (occupied[i * 8 + 4] ? 1 << 4 : 0) +
+                            (occupied[i * 8 + 3] ? 1 << 3 : 0) + (occupied[i * 8 + 2] ? 1 << 2 : 0) +
+                            (occupied[i * 8 + 1] ? 1 << 1 : 0) + (occupied[i * 8 + 0] ? 1 : 0)));
         }
         return block;
     }
 
     @Override
     public String toString() {
-        String result = "BitMap{occupied=";
-        for (int i = 0; i < bitMap.length; i++) {
-            result += String.format("%32s", Integer.toBinaryString(bitMap[i])).replace(' ', '0');
-        }
-        result += '}';
-        return result;
+        return "BitMap{" +
+                "occupied=" + Util.toBinaryString(occupied) +
+                '}';
     }
 }
