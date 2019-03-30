@@ -13,7 +13,8 @@ public class BitMap {
     private  int[] mask2;
 
     public BitMap(int numberOfBlocks) {
-        int intsNeeded = numberOfBlocks / 32+1;
+        int intsNeeded = numberOfBlocks / 32;
+        if(numberOfBlocks%32>0) intsNeeded++;
         this.bitMap=new int[intsNeeded];
         this.occupied = new boolean[numberOfBlocks];
         mask=new  int[32];
