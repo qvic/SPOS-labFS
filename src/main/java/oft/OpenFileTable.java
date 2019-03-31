@@ -22,11 +22,11 @@ public class OpenFileTable {
 
         int numberOfBlocks = Integer.parseInt(Config.INSTANCE.getProperty("blocks"));
         int blocksForDescriptors = Integer.parseInt(Config.INSTANCE.getProperty("blocksForDescriptors"));
-        int blockSize=Integer.parseInt(Config.INSTANCE.getProperty("blockSize"));
+        int descriptorInBlock=Integer.parseInt(Config.INSTANCE.getProperty("descriptorsInBlock"));
         BitMap bitMap = BitMap.fromBlock(numberOfBlocks, ioSystem.readBlock(0));
         bitMap.setOccupied(0);
         LogicalBlock descriptorBlock=new LogicalBlock();
-        for(int i=0;i<blockSize/16;i++){
+        for(int i=0;i<descriptorInBlock;i++){
             descriptorBlock.setInt(i*4,-1);
         }
         for (int i = 0; i < blocksForDescriptors; i++) {
@@ -52,7 +52,7 @@ public class OpenFileTable {
         // directory
         table.add(0, new OpenFileTableEntry(0, directoryDescriptor.getLength()));
 
-        add("Hello sdhfhsfh sdhkf hjkj hsdf hjksh dhkhksgjd asgdg ghahs 32 234 23 23 324 23434 234 2 42 43 78345 78 834578 378483899hksdfhkh hsdfkj hj");
+        //add("Hello sdhfhsfh sdhkf hjkj hsdf hjksh dhkhksgjd asgdg ghahs 32 234 23 23 324 23434 234 2 42 43 78345 78 834578 378483899hksdfhkh hsdfkj hj");
     }
 
     public void add(String name) {
