@@ -8,69 +8,71 @@ import java.util.Arrays;
 
 public class BitMap {
 
-    private boolean[] occupied;
-    private int numberOfBlocks;
 
+    private int[] bitMap;
+    private int[] mask;
+    private  int[] mask2;
+    private int numberOfBlocks;
     public BitMap(int numberOfBlocks) {
-        this.numberOfBlocks = numberOfBlocks;
-        this.occupied = new boolean[numberOfBlocks];
+        this.numberOfBlocks=numberOfBlocks;
+        int intsNeeded = numberOfBlocks / 32;
+        if(numberOfBlocks%32>0) intsNeeded++;
+        this.bitMap=new int[intsNeeded];
+        mask=new  int[32];
+        mask2=new int[32];
+        mask[31]=1;
+        mask2[31]=~mask[31];
+        for(int i=30;i>=0;i--){
+            mask[i]=mask[i+1]<<1;
+            mask2[i]=~mask[i];
+
+        }
     }
 
     public boolean isFreeBlock(int index) {
-        if (index < 0 || index >= numberOfBlocks) throw new IllegalArgumentException("Out of bounds");
-
-        return !occupied[index];
+        if(index<numberOfBlocks && index>=0){
+        return ((bitMap[index/32]&mask[index%32])==0);}
+        else throw  new IllegalArgumentException("Incorrect block number");
     }
 
     public static BitMap fromBlock(int numberOfBlocks, LogicalBlock block) {
         BitMap bitMap = new BitMap(numberOfBlocks);
-
-        for (int i = 0; i < 8; i++) {
-            byte b = block.getByte(i);
-            bitMap.occupied[i * 8 + 0] = ((b & 0b10000000) != 0);
-            bitMap.occupied[i * 8 + 1] = ((b & 0b01000000) != 0);
-            bitMap.occupied[i * 8 + 2] = ((b & 0b00100000) != 0);
-            bitMap.occupied[i * 8 + 3] = ((b & 0b00010000) != 0);
-            bitMap.occupied[i * 8 + 4] = ((b & 0b00001000) != 0);
-            bitMap.occupied[i * 8 + 5] = ((b & 0b00000100) != 0);
-            bitMap.occupied[i * 8 + 6] = ((b & 0b00000010) != 0);
-            bitMap.occupied[i * 8 + 7] = ((b & 0b00000001) != 0);
+        int intsCount = numberOfBlocks / 32;
+        if(numberOfBlocks%32>0) intsCount++;
+        for (int i = 0; i <intsCount ; i++) {
+            bitMap.bitMap[i]=block.getInt(i);
         }
 
         return bitMap;
     }
 
     public void setOccupied(int index) {
-        if (index < 0 || index >= numberOfBlocks) throw new IllegalArgumentException("Out of bounds");
-
-        occupied[index] = true;
+        if(index<numberOfBlocks && index>=0)
+        bitMap[index/32]=bitMap[index/32]|mask[index%32];
+        else throw  new IllegalArgumentException("Incorrect block number");
     }
 
     public void setFree(int index) {
-        if (index < 0 || index >= numberOfBlocks) throw new IllegalArgumentException("Out of bounds");
-
-        occupied[index] = false;
+        if(index<numberOfBlocks && index>=0)
+        bitMap[index/32]=bitMap[index/32]&mask2[index%32];
+        else throw  new IllegalArgumentException("Incorrect block number");
     }
 
     public LogicalBlock asBlock() {
         LogicalBlock block = new LogicalBlock();
-        for (int i = 0; i < 8; i++) {
-            block.setByte(i, (byte) ((occupied[i * 8 + 0] ? 1 << 7 : 0) +
-                    (occupied[i * 8 + 1] ? 1 << 6 : 0) +
-                    (occupied[i * 8 + 2] ? 1 << 5 : 0) +
-                    (occupied[i * 8 + 3] ? 1 << 4 : 0) +
-                    (occupied[i * 8 + 4] ? 1 << 3 : 0) +
-                    (occupied[i * 8 + 5] ? 1 << 2 : 0) +
-                    (occupied[i * 8 + 6] ? 1 << 1 : 0) +
-                    (occupied[i * 8 + 7] ? 1 : 0)));
+        for(int i=0;i<bitMap.length;i++){
+            block.setInt(i,bitMap[i]);
         }
         return block;
     }
 
     @Override
     public String toString() {
-        return "BitMap{" +
-                "occupied=" + Util.toBinaryString(occupied) +
-                '}';
+        StringBuilder result= new StringBuilder("BitMap{occupied=");
+        for(int i=0;i<bitMap.length;i++){
+            result.append(String.format("%32s", Integer.toBinaryString(bitMap[i])).replace(' ', '0'));
+        }
+        result.append('}');
+        return result.toString();
     }
 }
