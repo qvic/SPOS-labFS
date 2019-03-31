@@ -21,10 +21,6 @@ public class Util {
         return result;
     }
 
-    public static int ceilOfDivision(int a, int b) {
-        return (a + b - 1) / b;
-    }
-
     public static String toBinaryString(boolean[] array) {
         StringBuilder stringBuilder = new StringBuilder();
         for (boolean b : array) {
