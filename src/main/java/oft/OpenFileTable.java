@@ -1,12 +1,12 @@
-package main.oft;
+package oft;
 
-import main.exceptions.BlockIsFullException;
-import main.exceptions.DiskIsFullException;
-import main.fs.BitMap;
-import main.fs.FileDescriptor;
-import main.io.IOSystem;
-import main.io.LogicalBlock;
-import main.util.Config;
+import exceptions.BlockIsFullException;
+import exceptions.DiskIsFullException;
+import fs.BitMap;
+import fs.FileDescriptor;
+import io.IOSystem;
+import io.LogicalBlock;
+import util.Config;
 
 import java.util.ArrayList;
 import java.util.List;

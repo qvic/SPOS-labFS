@@ -1,7 +1,8 @@
-package main.oft;
+package oft;
 
-import main.exceptions.BlockIsFullException;
-import main.util.Config;
+
+import exceptions.BlockIsFullException;
+import util.Config;
 
 public class OpenFileTableEntry {
 

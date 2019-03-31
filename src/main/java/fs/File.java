@@ -1,4 +1,4 @@
-package main.fs;
+package fs;
 
 public class File {
 

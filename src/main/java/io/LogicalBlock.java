@@ -1,7 +1,7 @@
-package main.io;
+package io;
 
-import main.util.Config;
-import main.util.Util;
+import util.Config;
+import util.Util;
 
 import java.util.Arrays;
 

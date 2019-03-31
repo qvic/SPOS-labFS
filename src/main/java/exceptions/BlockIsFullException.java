@@ -1,4 +1,4 @@
-package main.exceptions;
+package exceptions;
 
 public class BlockIsFullException extends Exception {
 }

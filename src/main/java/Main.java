@@ -1,11 +1,6 @@
-package main;
-
-import main.fs.FileSystem;
-
-import java.util.Arrays;
+import fs.FileSystem;
 
 public class Main {
-
 
     public static void main(String[] args) {
         FileSystem fs = new FileSystem();

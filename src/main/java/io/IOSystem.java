@@ -1,12 +1,6 @@
-package main.io;
+package io;
 
-import main.exceptions.FileIsFullException;
-import main.fs.BitMap;
-import main.fs.FileDescriptor;
-import main.util.Config;
-
-import java.util.ArrayList;
-import java.util.List;
+import util.Config;
 
 public class IOSystem {
 

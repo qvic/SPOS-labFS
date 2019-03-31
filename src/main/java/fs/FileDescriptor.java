@@ -1,8 +1,7 @@
-package main.fs;
+package fs;
 
-import main.io.LogicalBlock;
-import main.util.Config;
-import main.util.Util;
+import io.LogicalBlock;
+import util.Config;
 
 import java.util.ArrayList;
 import java.util.List;

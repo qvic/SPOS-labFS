@@ -1,10 +1,10 @@
-package main.fs;
+package fs;
 
-import main.exceptions.FileIsFullException;
-import main.io.IOSystem;
-import main.io.LogicalBlock;
-import main.oft.OpenFileTable;
-import main.util.Config;
+import exceptions.FileIsFullException;
+import io.IOSystem;
+import io.LogicalBlock;
+import oft.OpenFileTable;
+import util.Config;
 
 import java.util.Arrays;
 import java.util.List;
