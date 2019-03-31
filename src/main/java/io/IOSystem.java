@@ -10,51 +10,55 @@ import java.util.logging.Level;
 
 
 public class IOSystem {
-    private static final Logger logger=Logger.getLogger(IOSystem.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(IOSystem.class.getName());
+    private static final int BLOCK_SIZE = Integer.parseInt(Config.INSTANCE.getProperty("blockSize"));
+    private static final int NUMBER_OF_BLOCKS = Integer.parseInt(Config.INSTANCE.getProperty("blocks"));
+
     private LogicalBlock[] blocks;
 
     public IOSystem() {
-        int numberOfBlocks = Integer.parseInt(Config.INSTANCE.getProperty("blocks"));
-        blocks = new LogicalBlock[numberOfBlocks];
+        blocks = new LogicalBlock[NUMBER_OF_BLOCKS];
 
-        for (int i = 0; i < numberOfBlocks; i++) {
+        for (int i = 0; i < NUMBER_OF_BLOCKS; i++) {
             blocks[i] = new LogicalBlock();
         }
     }
 
-    public void updateFromFile(String filename)  {
-        logger.log(Level.INFO,String.format("Update from file:%s",filename));
-        RandomAccessFile disk = null;
+    public void updateFromFile(String filename) {
+        LOGGER.log(Level.INFO, String.format("Update from file: %s", filename));
+        RandomAccessFile disk;
         try {
-            disk = new RandomAccessFile(filename,"rw");
+            disk = new RandomAccessFile(filename, "rw");
         } catch (FileNotFoundException e) {
-            logger.log(Level.WARNING,"File not found");
+            LOGGER.log(Level.WARNING, String.format("File %s not found", filename));
+            return;
         }
-        try{
-            for(int i=0;i<blocks.length;i++){
-                byte[] bytes=new byte[Integer.parseInt(Config.INSTANCE.getProperty("blockSize"))];
+        try {
+            for (int i = 0; i < blocks.length; i++) {
+                byte[] bytes = new byte[BLOCK_SIZE];
                 disk.read(bytes);
-                writeBlock(i,new LogicalBlock(bytes));
+                blocks[i] = new LogicalBlock(bytes);
             }
-        }catch (IOException e){
-            e.printStackTrace();
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, String.format("Error occurred while loading file %s: %s", filename, e.getMessage()));
         }
     }
 
     public void dumpToFile(String filename) {
-        logger.log(Level.INFO,String.format("Dump to file:%s",filename));
-        RandomAccessFile disk = null;
+        LOGGER.log(Level.INFO, String.format("Dump to file: %s", filename));
+        RandomAccessFile disk;
         try {
             disk = new RandomAccessFile(filename, "rw");
         } catch (FileNotFoundException e) {
-            logger.log(Level.WARNING,"File not found");
+            LOGGER.log(Level.WARNING, String.format("File %s not found", filename));
+            return;
         }
         try {
-            for (int i = 0; i < blocks.length; i++) {
-                disk.write(this.readBlock(i).getBytes());
+            for (LogicalBlock block : blocks) {
+                disk.write(block.getBytes());
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, String.format("Error occurred while loading file %s: %s", filename, e.getMessage()));
         }
 
     }
