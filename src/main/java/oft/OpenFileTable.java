@@ -22,11 +22,16 @@ public class OpenFileTable {
 
         int numberOfBlocks = Integer.parseInt(Config.INSTANCE.getProperty("blocks"));
         int blocksForDescriptors = Integer.parseInt(Config.INSTANCE.getProperty("blocksForDescriptors"));
-
+        int blockSize=Integer.parseInt(Config.INSTANCE.getProperty("blockSize"));
         BitMap bitMap = BitMap.fromBlock(numberOfBlocks, ioSystem.readBlock(0));
         bitMap.setOccupied(0);
+        LogicalBlock descriptorBlock=new LogicalBlock();
+        for(int i=0;i<blockSize/16;i++){
+            descriptorBlock.setInt(i*4,-1);
+        }
         for (int i = 0; i < blocksForDescriptors; i++) {
             bitMap.setOccupied(i + 1);
+            ioSystem.writeBlock(i+1,descriptorBlock);
         }
 
         FileDescriptor directoryDescriptor = new FileDescriptor(0);
