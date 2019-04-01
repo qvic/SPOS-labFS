@@ -8,13 +8,6 @@ import java.util.List;
 
 public class FileDescriptor {
 
-    private static int MAX_BLOCK_INDICES = Integer.parseInt(Config.INSTANCE.getProperty("blockIndicesInDescriptor"));
-    private static int BLOCK_SIZE = Integer.parseInt(Config.INSTANCE.getProperty("blockSize"));
-
-    public void setLength(int length) {
-        this.length = length;
-    }
-
     private int length;
     private List<Integer> blockIndexes;
 
@@ -23,8 +16,19 @@ public class FileDescriptor {
         this.blockIndexes = new ArrayList<>();
     }
 
+    public void setFileLength(int length) {
+        if (length >= Config.BLOCK_SIZE * blockIndexes.size()) {
+            throw new IllegalArgumentException("Can't set length greater than maximum length for added blocks");
+        }
+        int blockIndicesInDescriptor = length / Config.BLOCK_SIZE + 1;
+        if (blockIndicesInDescriptor != blockIndexes.size()) {
+            throw new IllegalStateException("Number of indexes in descriptor is not correct");
+        }
+        this.length = length;
+    }
+
     public void add(int... indices) {
-        if (blockIndexes.size() == MAX_BLOCK_INDICES)
+        if (blockIndexes.size() == Config.BLOCK_INDICES_IN_DESCRIPTOR)
             throw new IllegalStateException("Can't add more indices to block");
 
         for (int index : indices) {
@@ -36,15 +40,15 @@ public class FileDescriptor {
         return blockIndexes;
     }
 
-    public int getLength() {
+    public int getFileLength() {
         return length;
     }
 
     public int[] asInts() {
-        int blockIndicesInDescriptor = length / BLOCK_SIZE + 1;
+        int blockIndicesInDescriptor = length / Config.BLOCK_SIZE + 1;
 
-        if (blockIndexes.size() > 1 && blockIndicesInDescriptor != blockIndexes.size()) {
-            throw new IllegalStateException("Length is not correct");
+        if (blockIndicesInDescriptor != blockIndexes.size()) {
+            throw new IllegalStateException("Number of indexes in descriptor is not correct");
         }
 
         int totalSizeInInts = 1 + blockIndicesInDescriptor;
@@ -60,23 +64,23 @@ public class FileDescriptor {
     }
 
     public static FileDescriptor fromBlock(LogicalBlock block, int positionInBlock) {
-        int intPositionInBlock = (1 + MAX_BLOCK_INDICES) * positionInBlock;
-        int length = block.getInt(intPositionInBlock);
-        int blockIndicesInDescriptor = length / BLOCK_SIZE + 1;
+        int positionInBlockInInts = (1 + Config.BLOCK_INDICES_IN_DESCRIPTOR) * positionInBlock;
+        int length = block.getInt(positionInBlockInInts);
+        int blockIndicesInDescriptor = length / Config.BLOCK_SIZE + 1;
+
+        if (blockIndicesInDescriptor > Config.BLOCK_INDICES_IN_DESCRIPTOR) {
+            throw new IllegalStateException("Length of file is too big");
+        }
 
         FileDescriptor descriptor = new FileDescriptor(length);
         for (int i = 0; i < blockIndicesInDescriptor; i++) {
-            descriptor.add(block.getInt(intPositionInBlock + i + 1));
+            int blockIndex = block.getInt(positionInBlockInInts + i + 1);
+            if (blockIndex == 0) {
+                throw new IllegalStateException("Number of indexes in descriptor is not correct");
+            }
+            descriptor.add(blockIndex);
         }
         return descriptor;
-    }
-
-    public void insertToBlock(LogicalBlock block, int positionInBlock) {
-        int[] ints = asInts();
-
-        for (int i = 0; i < ints.length; i++) {
-            block.setInt(positionInBlock + i, ints[i]);
-        }
     }
 
     @Override

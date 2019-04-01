@@ -21,6 +21,8 @@ public class Util {
         return result;
     }
 
+
+
     public static String toBinaryString(boolean[] array) {
         StringBuilder stringBuilder = new StringBuilder();
         for (boolean b : array) {

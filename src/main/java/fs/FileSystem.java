@@ -1,13 +1,13 @@
 package fs;
 
-import exceptions.FileIsFullException;
+import exceptions.DiskIsFullException;
+import exceptions.NoFreeDescriptorsException;
+import exceptions.ReadOutOfFileException;
+import exceptions.SeekOutOfFileException;
 import io.IOSystem;
-import io.LogicalBlock;
 import oft.OpenFileTable;
 import util.Config;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -15,26 +15,39 @@ public class FileSystem {
 
     private static final Logger LOGGER = Logger.getLogger(FileSystem.class.getName());
 
-    private static final int BLOCKS_FOR_DESCRIPTORS = Integer.parseInt(Config.INSTANCE.getProperty("blocksForDescriptors"));
-
     private final OpenFileTable oft;
     private final IOSystem ioSystem;
+    private final FileDescriptorsArray descriptors;
 
     public FileSystem() {
         ioSystem = new IOSystem();
-        oft = new OpenFileTable(ioSystem);
+        descriptors = new FileDescriptorsArray(ioSystem);
+        oft = new OpenFileTable(descriptors, ioSystem);
 
-        FileDescriptor directoryDescriptor = FileDescriptor.fromBlock(ioSystem.readBlock(1), 0);
-//        Directory directory = new Directory(directoryDescriptor);
-
-        List<Integer> blockIndexes = directoryDescriptor.getBlockIndexes();
-        for (Integer blockIndex : blockIndexes) {
-            System.out.println(ioSystem.readBlock(blockIndex));
-        }
+        BitMap bitMap = new BitMap(Config.BLOCKS);
+        bitMap.setOccupied(0); // bitmap itself
+        ioSystem.writeBlock(0, bitMap.asBlock());
     }
 
     public void create(String name) {
         LOGGER.log(Level.INFO, String.format("Create: name=%s", name));
+
+        int freeDescriptorIndex;
+        try {
+            freeDescriptorIndex = descriptors.findFreeDescriptorIndex();
+        } catch (NoFreeDescriptorsException e) {
+            LOGGER.log(Level.WARNING, "No free descriptors left");
+            return;
+        }
+
+        int freeDirectoryEntry = findFreeDirectoryEntry();
+        try {
+            descriptors.addDescriptor(freeDescriptorIndex);
+        } catch (DiskIsFullException e) {
+            LOGGER.log(Level.WARNING, "Disk is full");
+            return;
+        }
+        writeDirectoryEntry(freeDirectoryEntry, name, freeDescriptorIndex);
     }
 
     public void destroy(String name) {
@@ -51,14 +64,38 @@ public class FileSystem {
 
     public void read(int index, int count) {
         LOGGER.log(Level.INFO, String.format("Read: index=%d, count=%d", index, count));
+
+        for (int i = 0; i < count; i++) {
+            try {
+                byte b = oft.readByte(index);
+                LOGGER.log(Level.INFO, "Read byte: %s", b);
+            } catch (ReadOutOfFileException e) {
+                LOGGER.log(Level.WARNING, "Nothing to read");
+            }
+        }
     }
 
     public void write(int index, byte data, int count) {
         LOGGER.log(Level.INFO, String.format("Write: index=%d, data=%c, count=%d", index, data, count));
+
+        for (int i = 0; i < count; i++) {
+            try {
+                oft.writeByte(index, data);
+            } catch (DiskIsFullException e) {
+                LOGGER.log(Level.WARNING, String.format("Disk is full, written only %d of total %d bytes", i, count));
+                return;
+            }
+        }
     }
 
     public void seek(int index, int position) {
         LOGGER.log(Level.INFO, String.format("Seek: index=%d, position=%d", index, position));
+
+        try {
+            oft.seek(index, position);
+        } catch (SeekOutOfFileException e) {
+            LOGGER.log(Level.WARNING, "Seek position is out of bounds");
+        }
     }
 
     public void directory() {
@@ -71,5 +108,14 @@ public class FileSystem {
 
     public void save(String name) {
         LOGGER.log(Level.INFO, String.format("Save: name=%s", name));
+    }
+
+    private int findFreeDirectoryEntry() {
+        // todo
+        return 0;
+    }
+
+    private void writeDirectoryEntry(int freeDirectoryEntry, String name, int freeDescriptorIndex) {
+        // todo
     }
 }

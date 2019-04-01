@@ -7,23 +7,22 @@ import java.util.Arrays;
 
 public class LogicalBlock {
 
-    private static final int BLOCK_SIZE = Integer.parseInt(Config.INSTANCE.getProperty("blockSize"));
     public static final int BYTES_IN_INT = 4;
     private byte[] bytes;
 
     public LogicalBlock() {
-        this.bytes = new byte[BLOCK_SIZE];
+        this.bytes = new byte[Config.BLOCK_SIZE];
     }
 
     public LogicalBlock(byte[] bytes) {
-        if (bytes.length != BLOCK_SIZE) {
+        if (bytes.length != Config.BLOCK_SIZE) {
             throw new IllegalArgumentException("Bytes array must be same size as block");
         }
         this.bytes = Arrays.copyOf(bytes, bytes.length);
     }
 
     public int getBlockSize() {
-        return BLOCK_SIZE;
+        return Config.BLOCK_SIZE;
     }
 
     public void setByte(int index, byte data) {
@@ -35,7 +34,7 @@ public class LogicalBlock {
     }
 
     public byte[] getBytes() {
-        return Arrays.copyOf(bytes, BLOCK_SIZE);
+        return Arrays.copyOf(bytes, Config.BLOCK_SIZE);
     }
 
     public int getInt(int index) {

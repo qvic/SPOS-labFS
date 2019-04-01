@@ -5,21 +5,19 @@ import util.Config;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.logging.Logger;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 public class IOSystem {
     private static final Logger LOGGER = Logger.getLogger(IOSystem.class.getName());
-    private static final int BLOCK_SIZE = Integer.parseInt(Config.INSTANCE.getProperty("blockSize"));
-    private static final int NUMBER_OF_BLOCKS = Integer.parseInt(Config.INSTANCE.getProperty("blocks"));
 
     private LogicalBlock[] blocks;
 
     public IOSystem() {
-        blocks = new LogicalBlock[NUMBER_OF_BLOCKS];
+        blocks = new LogicalBlock[Config.BLOCKS];
 
-        for (int i = 0; i < NUMBER_OF_BLOCKS; i++) {
+        for (int i = 0; i < Config.BLOCKS; i++) {
             blocks[i] = new LogicalBlock();
         }
     }
@@ -35,7 +33,7 @@ public class IOSystem {
         }
         try {
             for (int i = 0; i < blocks.length; i++) {
-                byte[] bytes = new byte[BLOCK_SIZE];
+                byte[] bytes = new byte[Config.BLOCK_SIZE];
                 disk.read(bytes);
                 blocks[i] = new LogicalBlock(bytes);
             }
