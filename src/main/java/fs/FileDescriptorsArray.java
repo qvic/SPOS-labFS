@@ -67,11 +67,11 @@ public class FileDescriptorsArray {
     }
 
     public int findFreeDescriptorIndex() throws NoFreeDescriptorsException  {
-        for (int i = 0; i < Config.BLOCKS_FOR_DESCRIPTORS; i++) {
+        for (int i = 1; i <= Config.BLOCKS_FOR_DESCRIPTORS; i++) {
             for (int j = 0; j < Config.DESCRIPTORS_IN_BLOCK; j++) {
                 FileDescriptor descriptor = FileDescriptor.fromBlock(ioSystem.readBlock(i), j);
                 if (descriptor.getBlockIndexes().get(0) == 0) {
-                    return i + j;
+                    return ((i-1)*Config.DESCRIPTORS_IN_BLOCK + j);
                 }
             }
         }
