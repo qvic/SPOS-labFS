@@ -1,9 +1,6 @@
 package fs;
 
-import exceptions.DiskIsFullException;
-import exceptions.NoFreeDescriptorsException;
-import exceptions.ReadOutOfFileException;
-import exceptions.SeekOutOfFileException;
+import exceptions.*;
 import io.IOSystem;
 import oft.OpenFileTable;
 import util.Config;
@@ -83,6 +80,9 @@ public class FileSystem {
                 oft.writeByte(index, data);
             } catch (DiskIsFullException e) {
                 LOGGER.log(Level.WARNING, String.format("Disk is full, written only %d of total %d bytes", i, count));
+                return;
+            } catch (DescriptorIsFullException e) {
+                LOGGER.log(Level.WARNING, "Descriptor is full, can't add more blocks");
                 return;
             }
         }

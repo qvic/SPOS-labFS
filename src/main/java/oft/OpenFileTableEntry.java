@@ -37,8 +37,13 @@ public class OpenFileTableEntry {
         this.currentPositionInFile = 0;
         this.currentPositionInBuffer = 0;
         this.currentBlockIndex = 0;
-        this.fileLength = 0;
+        this.fileLength = descriptors.getFileLength(descriptorIndex);
+        // read ahead
         this.buffer = ioSystem.readBlock(descriptors.getDescriptor(descriptorIndex).getBlockIndexes().get(0)).getBytes();
+    }
+
+    public int getFileLength() {
+        return fileLength;
     }
 
     public byte[] getBuffer() {
@@ -50,47 +55,50 @@ public class OpenFileTableEntry {
             throw new SeekOutOfFileException();
         }
 
-        // if buffer just switched to new
-        if (position / Config.BLOCK_SIZE != currentBlockIndex) {
+        int newBlockIndex = position / Config.BLOCK_SIZE;
+        if (newBlockIndex != currentBlockIndex) {
             dumpBuffer();
-            currentBlockIndex = position / Config.BLOCK_SIZE;
-            updateBuffer();
+
+            if (descriptors.getDescriptor(descriptorIndex).getBlockIndexes().size() > newBlockIndex) {
+                currentBlockIndex = newBlockIndex;
+                updateBuffer();
+            } else {
+                throw new SeekOutOfFileException();
+            }
         }
 
         currentPositionInBuffer = position % Config.BLOCK_SIZE;
         currentPositionInFile = position;
     }
 
-    public void writeToBuffer(byte data) throws DiskIsFullException {
-        buffer[currentPositionInBuffer] = data;
-        int nextPositionInFile = currentPositionInFile + 1;
+    public void writeToBuffer(byte data) throws DiskIsFullException, DescriptorIsFullException {
         try {
-            seekBuffer(nextPositionInFile);
+            seekBuffer(currentPositionInFile);
         } catch (SeekOutOfFileException e) {
-            fileLength++;
-
-            if (currentPositionInBuffer + 1 == Config.BLOCK_SIZE) {
-                descriptors.allocateNewBlock(descriptorIndex);
-            }
+            descriptors.allocateNewBlock(descriptorIndex);
 
             try {
-                seekBuffer(nextPositionInFile);
+                seekBuffer(currentPositionInFile);
             } catch (SeekOutOfFileException ex) {
                 throw new IllegalStateException("Seek index is out of file after allocating new block");
             }
         }
+        currentPositionInFile++;
+        if (fileLength < currentPositionInFile) {
+            fileLength++;
+        }
+        buffer[currentPositionInBuffer] = data;
     }
 
     public byte readBuffer() throws ReadOutOfFileException {
         if (currentPositionInFile == fileLength) throw new ReadOutOfFileException();
-
-        byte value = buffer[currentPositionInBuffer];
         try {
-            seekBuffer(currentPositionInFile + 1);
+            seekBuffer(currentPositionInFile);
         } catch (SeekOutOfFileException e) {
             throw new ReadOutOfFileException();
         }
-        return value;
+        currentPositionInFile++;
+        return buffer[currentPositionInBuffer];
     }
 
     private void setBuffer(byte[] bytes) {
@@ -102,12 +110,23 @@ public class OpenFileTableEntry {
     }
 
     private void dumpBuffer() {
-        int absoluteBlockIndex = descriptors.getDescriptor(descriptorIndex).getBlockIndexes().get(currentBlockIndex);
+        FileDescriptor descriptor = descriptors.getDescriptor(descriptorIndex);
+//        descriptor.setFileLength(fileLength);
+//        descriptors.insertDescriptor(descriptor, descriptorIndex);
+        int absoluteBlockIndex = descriptor.getBlockIndexes().get(currentBlockIndex);
         ioSystem.writeBlock(absoluteBlockIndex, new LogicalBlock(buffer));
     }
 
     private void updateBuffer() {
+//        fileLength = descriptors.getFileLength(descriptorIndex);
         int absoluteBlockIndex = descriptors.getDescriptor(descriptorIndex).getBlockIndexes().get(currentBlockIndex);
         setBuffer(ioSystem.readBlock(absoluteBlockIndex).getBytes());
+    }
+
+    public void closeEntry() {
+        FileDescriptor descriptor = descriptors.getDescriptor(descriptorIndex);
+        descriptor.setFileLength(fileLength);
+        descriptors.insertDescriptor(descriptor, descriptorIndex);
+        dumpBuffer();
     }
 }

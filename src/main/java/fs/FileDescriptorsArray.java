@@ -1,5 +1,6 @@
 package fs;
 
+import exceptions.DescriptorIsFullException;
 import exceptions.DiskIsFullException;
 import exceptions.NoFreeDescriptorsException;
 import io.IOSystem;
@@ -66,12 +67,12 @@ public class FileDescriptorsArray {
         }
     }
 
-    public int findFreeDescriptorIndex() throws NoFreeDescriptorsException  {
+    public int findFreeDescriptorIndex() throws NoFreeDescriptorsException {
         for (int i = 1; i <= Config.BLOCKS_FOR_DESCRIPTORS; i++) {
             for (int j = 0; j < Config.DESCRIPTORS_IN_BLOCK; j++) {
                 FileDescriptor descriptor = FileDescriptor.fromBlock(ioSystem.readBlock(i), j);
-                if (descriptor.getBlockIndexes().get(0) == 0) {
-                    return ((i-1)*Config.DESCRIPTORS_IN_BLOCK + j);
+                if (descriptor == null) {
+                    return ((i - 1) * Config.DESCRIPTORS_IN_BLOCK + j);
                 }
             }
         }
@@ -83,15 +84,25 @@ public class FileDescriptorsArray {
         return FileDescriptor.fromBlock(descriptorBlock, descriptorIndex % Config.DESCRIPTORS_IN_BLOCK);
     }
 
-    public void allocateNewBlock(int descriptorIndex) throws DiskIsFullException {
+    public void allocateNewBlock(int descriptorIndex) throws DiskIsFullException, DescriptorIsFullException {
+        FileDescriptor descriptor = getDescriptor(descriptorIndex);
+        if (descriptor.isFull()) {
+            throw new DescriptorIsFullException();
+        }
+
         BitMap bitMap = BitMap.fromBlock(Config.BLOCKS, ioSystem.readBlock(0));
         int freeBlock = bitMap.findFreeBlock();
         bitMap.setOccupied(freeBlock);
-        FileDescriptor descriptor = getDescriptor(descriptorIndex);
         descriptor.add(freeBlock);
+        // allocation of new block means that file is full
         descriptor.setFileLength((descriptor.getBlockIndexes().size() - 1) * Config.BLOCK_SIZE);
         insertDescriptor(descriptor, descriptorIndex);
         ioSystem.writeBlock(0, bitMap.asBlock());
+    }
+
+    public int getFileLength(int descriptorIndex) {
+        FileDescriptor descriptor = getDescriptor(descriptorIndex);
+        return descriptor.getFileLength();
     }
 
     public void updateFileLength(int descriptorIndex, int fileLength) {

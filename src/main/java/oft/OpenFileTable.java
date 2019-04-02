@@ -1,5 +1,6 @@
 package oft;
 
+import exceptions.DescriptorIsFullException;
 import exceptions.DiskIsFullException;
 import exceptions.ReadOutOfFileException;
 import exceptions.SeekOutOfFileException;
@@ -22,7 +23,7 @@ public class OpenFileTable {
         this.table = new ArrayList<>();
     }
 
-    public void writeByte(int oftIndex, byte data) throws DiskIsFullException {
+    public void writeByte(int oftIndex, byte data) throws DiskIsFullException, DescriptorIsFullException {
         OpenFileTableEntry entry = table.get(oftIndex);
 
         entry.writeToBuffer(data);

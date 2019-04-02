@@ -17,13 +17,10 @@ public class FileDescriptor {
     }
 
     public void setFileLength(int length) {
-        if (length >= Config.BLOCK_SIZE * blockIndexes.size()) {
+        if (length > Config.BLOCK_SIZE * blockIndexes.size()) {
             throw new IllegalArgumentException("Can't set length greater than maximum length for added blocks");
         }
-        int blockIndicesInDescriptor = length / Config.BLOCK_SIZE + 1;
-        if (blockIndicesInDescriptor != blockIndexes.size()) {
-            throw new IllegalStateException("Number of indexes in descriptor is not correct");
-        }
+
         this.length = length;
     }
 
@@ -45,13 +42,7 @@ public class FileDescriptor {
     }
 
     public int[] asInts() {
-        int blockIndicesInDescriptor = length / Config.BLOCK_SIZE + 1;
-
-        if (blockIndicesInDescriptor != blockIndexes.size()) {
-            throw new IllegalStateException("Number of indexes in descriptor is not correct");
-        }
-
-        int totalSizeInInts = 1 + blockIndicesInDescriptor;
+        int totalSizeInInts = 1 + blockIndexes.size();
         int[] ints = new int[totalSizeInInts];
 
         ints[0] = length;
@@ -66,17 +57,16 @@ public class FileDescriptor {
     public static FileDescriptor fromBlock(LogicalBlock block, int positionInBlock) {
         int positionInBlockInInts = (1 + Config.BLOCK_INDICES_IN_DESCRIPTOR) * positionInBlock;
         int length = block.getInt(positionInBlockInInts);
-        int blockIndicesInDescriptor = length / Config.BLOCK_SIZE + 1;
 
-        if (blockIndicesInDescriptor > Config.BLOCK_INDICES_IN_DESCRIPTOR) {
-            throw new IllegalStateException("Length of file is too big");
+        if (length == 0 && block.getInt(positionInBlockInInts + 1) == 0) {
+            return null;
         }
 
         FileDescriptor descriptor = new FileDescriptor(length);
-        for (int i = 0; i < blockIndicesInDescriptor; i++) {
+        for (int i = 0; i < Config.BLOCK_INDICES_IN_DESCRIPTOR; i++) {
             int blockIndex = block.getInt(positionInBlockInInts + i + 1);
             if (blockIndex == 0) {
-                throw new IllegalStateException("Number of indexes in descriptor is not correct");
+                break;
             }
             descriptor.add(blockIndex);
         }
@@ -89,5 +79,9 @@ public class FileDescriptor {
                 "length=" + length +
                 ", blockIndexes=" + blockIndexes +
                 '}';
+    }
+
+    public boolean isFull() {
+        return blockIndexes.size() == Config.BLOCK_INDICES_IN_DESCRIPTOR;
     }
 }
