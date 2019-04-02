@@ -63,7 +63,7 @@ public class FileDescriptorsArray {
         int[] ints = descriptor.asInts();
 
         for (int i = 0; i < ints.length; i++) {
-            block.setInt(positionInBlock + i, ints[i]);
+            block.setInt((1 + Config.BLOCK_INDICES_IN_DESCRIPTOR) * positionInBlock + i, ints[i]);
         }
     }
 

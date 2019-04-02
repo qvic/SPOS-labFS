@@ -4,6 +4,8 @@ public class Main {
 
     public static void main(String[] args) {
         FileSystem fs = new FileSystem();
-        fs.create("Hello");
+        fs.create("hi");
+
+        fs.open("hi");
     }
 }
