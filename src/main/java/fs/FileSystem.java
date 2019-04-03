@@ -2,11 +2,13 @@ package fs;
 
 import exceptions.*;
 import io.IOSystem;
+import io.LogicalBlock;
 import oft.OpenFileTable;
 import oft.OpenFileTableEntry;
 import util.Config;
 import util.Util;
 
+import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -54,7 +56,12 @@ public class FileSystem {
             return;
         }
 
-        int freeDirectoryEntry = findFreeDirectoryEntry();
+        int freeDirectoryEntry = 0;
+        try {
+            freeDirectoryEntry = findFreeDirectoryEntry();
+        } catch (NoFreeDirectoryEntryException e) {
+            LOGGER.log(Level.WARNING, "No free directory entry left");
+        }
         try {
             writeDirectoryEntry(freeDirectoryEntry, name, freeDescriptorIndex);
         } catch (SeekOutOfFileException e) {
@@ -68,6 +75,39 @@ public class FileSystem {
 
     public void destroy(String name) {
         LOGGER.log(Level.INFO, String.format("Destroy: name=%s", name));
+        int directoryEntry = findDirectoryEntryByName(name);
+        byte[] bytes=new byte[4];
+        OpenFileTableEntry directory = oft.getEntry(0);
+        try {
+            directory.seekBuffer(4*2*directoryEntry+4);
+        } catch (SeekOutOfFileException e) {
+            e.printStackTrace();
+        }
+        for (int i = 0; i <4; i++) {
+            try {
+                bytes[i]=directory.readBuffer();
+            } catch (ReadOutOfFileException e) {
+                e.printStackTrace();
+            }
+        }
+        int descriptorIndex = Util.getIntByBytes(bytes[0],bytes[1],bytes[2],bytes[3]);
+        try {
+            directory.seekBuffer(4*2*directoryEntry+4);
+        } catch (SeekOutOfFileException e) {
+            e.printStackTrace();
+        }
+        byte[] zero=Util.getBytesByInt(0);
+        for (int i = 0; i <4; i++) {
+            try {
+                directory.writeToBuffer(zero[i]);
+            } catch (FullDiskException e) {
+                e.printStackTrace();
+            } catch (FullDescriptorException e) {
+                e.printStackTrace();
+            }
+        }
+        descriptors.removeDescriptor(descriptorIndex);
+
     }
 
     public void open(String name) {
@@ -163,9 +203,52 @@ public class FileSystem {
         return 0;
     }
 
-    private int findFreeDirectoryEntry() {
-        // todo
-        return 0;
+    private int findDirectoryEntryByName(String name) {
+        OpenFileTableEntry directory = oft.getEntry(0);
+        if (name.length() > 4) throw new IllegalArgumentException("Name is too long");
+        for (int i = 0; i < directory.getFileLength() / 8; i++) {
+            try {
+                directory.seekBuffer(i * 2 *4 );
+            } catch (SeekOutOfFileException e) {
+                LOGGER.log(Level.WARNING, "Seek position is out of bounds");
+            }
+            byte[] bytes = new byte[4];
+            for (int j = 0; j < 4; j++) {
+                try {
+                    bytes[j] = directory.readBuffer();
+                } catch (ReadOutOfFileException e) {
+                    LOGGER.log(Level.WARNING, "");
+                }
+            }
+
+            if (Arrays.equals(bytes,name.getBytes())) return i;
+        }
+        throw new IllegalArgumentException("File with such name does not exist");
+    }
+
+    private int findFreeDirectoryEntry() throws NoFreeDirectoryEntryException {
+        OpenFileTableEntry directory = oft.getEntry(0);
+        if (directory.getFileLength() < Config.BLOCK_INDICES_IN_DESCRIPTOR * Config.BLOCK_SIZE)
+            return directory.getFileLength() / 8;
+        for (int i = 0; i < directory.getFileLength() / 8; i++) {
+            try {
+                directory.seekBuffer(i * 2 *4 + 4);
+            } catch (SeekOutOfFileException e) {
+                LOGGER.log(Level.WARNING, "Seek position is out of bounds");
+            }
+            byte[] bytes = new byte[LogicalBlock.BYTES_IN_INT];
+            for (int j = 0; j < LogicalBlock.BYTES_IN_INT; j++) {
+                try {
+                    bytes[j] = directory.readBuffer();
+                } catch (ReadOutOfFileException e) {
+                    LOGGER.log(Level.WARNING, "Free directory entry reading fails");
+                }
+            }
+            int result = Util.getIntByBytes(bytes[0], bytes[1], bytes[2], bytes[3]);
+            if (result == 0) return i;
+        }
+
+        throw new NoFreeDirectoryEntryException();
     }
 
     private void writeDirectoryEntry(int freeDirectoryEntry, String name, int freeDescriptorIndex) throws SeekOutOfFileException, FullDiskException, FullDescriptorException {
