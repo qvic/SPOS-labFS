@@ -28,15 +28,14 @@ class FileDescriptorTest {
     @Test
     void fromBlock() {
         LogicalBlock block = new LogicalBlock();
-        block.setInt(0, 100);
-        block.setInt(1, 10);
 
-        assertThrows(IllegalStateException.class, () -> FileDescriptor.fromBlock(block, 0));
+        assertNull(FileDescriptor.fromBlock(block, 0));
 
         block.setInt(4, 63);
         block.setInt(5, 10);
 
         FileDescriptor descriptor1 = FileDescriptor.fromBlock(block, 1);
+        assertNotNull(descriptor1);
 
         assertEquals(63, descriptor1.getFileLength());
         assertEquals(1, descriptor1.getBlockIndexes().size());
@@ -48,23 +47,12 @@ class FileDescriptorTest {
         block.setInt(11, 12);
 
         FileDescriptor descriptor2 = FileDescriptor.fromBlock(block, 2);
+        assertNotNull(descriptor2);
 
         assertEquals(191, descriptor2.getFileLength());
         assertEquals(3, descriptor2.getBlockIndexes().size());
         assertEquals(10, descriptor2.getBlockIndexes().get(0));
         assertEquals(11, descriptor2.getBlockIndexes().get(1));
         assertEquals(12, descriptor2.getBlockIndexes().get(2));
-
-        block.setInt(12, 200);
-        block.setInt(13, 13);
-        block.setInt(14, 14);
-        block.setInt(15, 15);
-
-        assertThrows(IllegalStateException.class, () -> FileDescriptor.fromBlock(block, 3));
-    }
-
-    @Test
-    void setFileLength() {
-        // todo
     }
 }

@@ -100,12 +100,4 @@ class OpenFileTableEntryTest {
         }
         assertEquals(newTestString + TEST_STRING2, result.toString());
     }
-
-    @Test
-    void writeToBuffer() {
-    }
-
-    @Test
-    void readBuffer() {
-    }
 }

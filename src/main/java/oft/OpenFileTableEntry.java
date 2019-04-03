@@ -21,14 +21,6 @@ public class OpenFileTableEntry {
     private FileDescriptorsArray descriptors;
     private IOSystem ioSystem;
 
-    public int getDescriptorIndex() {
-        return descriptorIndex;
-    }
-
-    public int getCurrentPositionInFile() {
-        return currentPositionInFile;
-    }
-
     public OpenFileTableEntry(FileDescriptorsArray descriptors, IOSystem ioSystem, int descriptorIndex) {
         this.descriptors = descriptors;
         this.ioSystem = ioSystem;
@@ -45,18 +37,16 @@ public class OpenFileTableEntry {
         return fileLength;
     }
 
-    public byte[] getBuffer() {
-        return buffer;
-    }
-
-    public void seekBuffer(int position) throws SeekOutOfFileException {
+    private void seekBuffer(int position, boolean dump) throws SeekOutOfFileException {
         if (position > fileLength) {
             throw new SeekOutOfFileException();
         }
 
         int newBlockIndex = position / Config.BLOCK_SIZE;
         if (newBlockIndex != currentBlockIndex) {
-            dumpBuffer();
+            if (dump) {
+                dumpBuffer();
+            }
 
             if (descriptors.getDescriptor(descriptorIndex).getBlockIndexes().size() > newBlockIndex) {
                 currentBlockIndex = newBlockIndex;
@@ -70,14 +60,18 @@ public class OpenFileTableEntry {
         currentPositionInFile = position;
     }
 
+    public void seekBuffer(int position) throws SeekOutOfFileException {
+        seekBuffer(position, true);
+    }
+
     public void writeToBuffer(byte data) throws FullDiskException, FullDescriptorException {
         try {
-            seekBuffer(currentPositionInFile);
+            seekBuffer(currentPositionInFile, true);
         } catch (SeekOutOfFileException e) {
             descriptors.allocateNewBlock(descriptorIndex);
 
             try {
-                seekBuffer(currentPositionInFile);
+                seekBuffer(currentPositionInFile, false);
             } catch (SeekOutOfFileException ex) {
                 throw new IllegalStateException("Seek index is out of file after allocating new block");
             }
@@ -110,14 +104,11 @@ public class OpenFileTableEntry {
 
     private void dumpBuffer() {
         FileDescriptor descriptor = descriptors.getDescriptor(descriptorIndex);
-//        descriptor.setFileLength(fileLength);
-//        descriptors.insertDescriptor(descriptor, descriptorIndex);
         int absoluteBlockIndex = descriptor.getBlockIndexes().get(currentBlockIndex);
         ioSystem.writeBlock(absoluteBlockIndex, new LogicalBlock(buffer));
     }
 
     private void updateBuffer() {
-//        fileLength = descriptors.getFileLength(descriptorIndex);
         int absoluteBlockIndex = descriptors.getDescriptor(descriptorIndex).getBlockIndexes().get(currentBlockIndex);
         setBuffer(ioSystem.readBlock(absoluteBlockIndex).getBytes());
     }

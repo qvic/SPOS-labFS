@@ -49,5 +49,9 @@ class IOSystemTest {
         block.setByte(0, (byte) 1);
 
         assertNotEquals(ioSystem.readBlock(0).getByte(0), (byte) 1);
+
+        ioSystem.writeBlock(0, block);
+
+        assertEquals(ioSystem.readBlock(0).getByte(0), (byte) 1);
     }
 }

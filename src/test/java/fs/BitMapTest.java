@@ -19,7 +19,7 @@ class BitMapTest {
         }
 
         // testing is setOccupied and isFree working correctly
-        // by default bitmap should free for all indexes
+        // by default bitmap should be free for all indexes
         for (int i = 0; i < numberOfBlocks; i++) {
             if (i % 2 == 0) {
                 assertFalse(bitMap.isFreeBlock(i));
