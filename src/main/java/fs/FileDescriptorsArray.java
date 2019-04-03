@@ -1,7 +1,7 @@
 package fs;
 
-import exceptions.DescriptorIsFullException;
-import exceptions.DiskIsFullException;
+import exceptions.FullDescriptorException;
+import exceptions.FullDiskException;
 import exceptions.NoFreeDescriptorsException;
 import io.IOSystem;
 import io.LogicalBlock;
@@ -26,7 +26,7 @@ public class FileDescriptorsArray {
         emptyDescriptor.add(0);
     }
 
-    public void addDescriptor(int descriptorIndex) throws DiskIsFullException {
+    public void addDescriptor(int descriptorIndex) throws FullDiskException {
         FileDescriptor descriptor = new FileDescriptor(0);
 
         BitMap bitMap = BitMap.fromBlock(Config.BLOCKS, ioSystem.readBlock(0));
@@ -84,10 +84,10 @@ public class FileDescriptorsArray {
         return FileDescriptor.fromBlock(descriptorBlock, descriptorIndex % Config.DESCRIPTORS_IN_BLOCK);
     }
 
-    public void allocateNewBlock(int descriptorIndex) throws DiskIsFullException, DescriptorIsFullException {
+    public void allocateNewBlock(int descriptorIndex) throws FullDiskException, FullDescriptorException {
         FileDescriptor descriptor = getDescriptor(descriptorIndex);
         if (descriptor.isFull()) {
-            throw new DescriptorIsFullException();
+            throw new FullDescriptorException();
         }
 
         BitMap bitMap = BitMap.fromBlock(Config.BLOCKS, ioSystem.readBlock(0));

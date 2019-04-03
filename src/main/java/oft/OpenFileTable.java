@@ -1,9 +1,5 @@
 package oft;
 
-import exceptions.DescriptorIsFullException;
-import exceptions.DiskIsFullException;
-import exceptions.ReadOutOfFileException;
-import exceptions.SeekOutOfFileException;
 import fs.FileDescriptorsArray;
 import io.IOSystem;
 

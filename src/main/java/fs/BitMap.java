@@ -1,9 +1,8 @@
 package fs;
 
 
-import exceptions.DiskIsFullException;
+import exceptions.FullDiskException;
 import io.LogicalBlock;
-import util.Config;
 
 public class BitMap {
 
@@ -55,13 +54,13 @@ public class BitMap {
         else throw new IllegalArgumentException("Incorrect block number");
     }
 
-    public int findFreeBlock() throws DiskIsFullException {
+    public int findFreeBlock() throws FullDiskException {
         for (int i = 0; i < numberOfBlocks; i++) {
             if (isFreeBlock(i)) {
                 return i;
             }
         }
-        throw new DiskIsFullException();
+        throw new FullDiskException();
     }
 
     public LogicalBlock asBlock() {

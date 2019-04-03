@@ -31,7 +31,7 @@ public class FileSystem {
         int directoryDescriptorIndex = 0;
         try {
             descriptors.addDescriptor(directoryDescriptorIndex);
-        } catch (DiskIsFullException e) {
+        } catch (FullDiskException e) {
             throw new RuntimeException("Disk is full on start");
         }
         int directoryOftIndex = oft.addEntry(directoryDescriptorIndex);
@@ -49,7 +49,7 @@ public class FileSystem {
         }
         try {
             descriptors.addDescriptor(freeDescriptorIndex);
-        } catch (DiskIsFullException e) {
+        } catch (FullDiskException e) {
             LOGGER.log(Level.WARNING, "Disk is full");
             return;
         }
@@ -59,9 +59,9 @@ public class FileSystem {
             writeDirectoryEntry(freeDirectoryEntry, name, freeDescriptorIndex);
         } catch (SeekOutOfFileException e) {
             e.printStackTrace();
-        } catch (DiskIsFullException e) {
+        } catch (FullDiskException e) {
             e.printStackTrace();
-        } catch (DescriptorIsFullException e) {
+        } catch (FullDescriptorException e) {
             e.printStackTrace();
         }
     }
@@ -108,10 +108,10 @@ public class FileSystem {
         for (int i = 0; i < count; i++) {
             try {
                 oft.getEntry(index).writeToBuffer(data);
-            } catch (DiskIsFullException e) {
+            } catch (FullDiskException e) {
                 LOGGER.log(Level.WARNING, String.format("Disk is full, written only %d of total %d bytes", i, count));
                 return;
-            } catch (DescriptorIsFullException e) {
+            } catch (FullDescriptorException e) {
                 LOGGER.log(Level.WARNING, "Descriptor is full, can't add more blocks");
                 return;
             }
@@ -168,7 +168,7 @@ public class FileSystem {
         return 0;
     }
 
-    private void writeDirectoryEntry(int freeDirectoryEntry, String name, int freeDescriptorIndex) throws SeekOutOfFileException, DiskIsFullException, DescriptorIsFullException {
+    private void writeDirectoryEntry(int freeDirectoryEntry, String name, int freeDescriptorIndex) throws SeekOutOfFileException, FullDiskException, FullDescriptorException {
         if (name.length() > 4) throw new IllegalArgumentException("Name is too long");
 
         OpenFileTableEntry directory = oft.getEntry(0);

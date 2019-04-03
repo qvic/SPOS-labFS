@@ -2,7 +2,6 @@ package oft;
 
 
 import exceptions.*;
-import fs.BitMap;
 import fs.FileDescriptor;
 import fs.FileDescriptorsArray;
 import io.IOSystem;
@@ -71,7 +70,7 @@ public class OpenFileTableEntry {
         currentPositionInFile = position;
     }
 
-    public void writeToBuffer(byte data) throws DiskIsFullException, DescriptorIsFullException {
+    public void writeToBuffer(byte data) throws FullDiskException, FullDescriptorException {
         try {
             seekBuffer(currentPositionInFile);
         } catch (SeekOutOfFileException e) {

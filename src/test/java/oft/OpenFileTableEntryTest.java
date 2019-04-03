@@ -16,7 +16,7 @@ class OpenFileTableEntryTest {
     public static final String TEST_STRING2 = "Praesent finibus tempor sapien, sit amet facilisis leo nu.";
 
     @Test
-    void seekBuffer() throws DiskIsFullException, SeekOutOfFileException, NoFreeDescriptorsException, ReadOutOfFileException, DescriptorIsFullException {
+    void seekBuffer() throws FullDiskException, SeekOutOfFileException, NoFreeDescriptorsException, ReadOutOfFileException, FullDescriptorException {
         IOSystem ioSystem = new IOSystem();
 
         BitMap bitMap = new BitMap(Config.BLOCKS);
@@ -87,7 +87,7 @@ class OpenFileTableEntryTest {
 
         // trying to add more than capacity
         OpenFileTableEntry finalEntry = entry;
-        assertThrows(DescriptorIsFullException.class, () -> finalEntry.writeToBuffer((byte) 'a'));
+        assertThrows(FullDescriptorException.class, () -> finalEntry.writeToBuffer((byte) 'a'));
 
         entry.seekBuffer(0);
         result = new StringBuilder();
