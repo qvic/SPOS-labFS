@@ -61,6 +61,7 @@ public class FileSystem {
             freeDirectoryEntry = findFreeDirectoryEntry();
         } catch (NoFreeDirectoryEntryException e) {
             LOGGER.log(Level.WARNING, "No free directory entry left");
+            return;
         }
         try {
             writeDirectoryEntry(freeDirectoryEntry, name, freeDescriptorIndex);
@@ -135,7 +136,7 @@ public class FileSystem {
         for (int i = 0; i < count; i++) {
             try {
                 byte b = oft.getEntry(index).readBuffer();
-                LOGGER.log(Level.INFO, "Read byte: %s", b);
+                LOGGER.log(Level.INFO, String.format("Read byte: %s", (char)b));
             } catch (ReadOutOfFileException e) {
                 LOGGER.log(Level.WARNING, "Nothing to read");
             }
@@ -170,6 +171,40 @@ public class FileSystem {
 
     public void directory() {
         LOGGER.log(Level.INFO, "Directory");
+        OpenFileTableEntry directory = oft.getEntry(0);
+        int numberOfEntries = directory.getFileLength() / (4 * 2);
+        String result="";
+        for (int i = 0; i < numberOfEntries; i++) {
+            try {
+                directory.seekBuffer(i * 4 * 2);
+            } catch (SeekOutOfFileException e) {
+                LOGGER.log(Level.WARNING, "Seek position is out of bounds");
+                return;
+            }
+            StringBuilder builder = new StringBuilder();
+            for (int j = 0; j < 4; j++) {
+                try {
+                    builder.append((char) directory.readBuffer());
+                } catch (ReadOutOfFileException e) {
+                    e.printStackTrace();
+                    return;
+                }
+            }
+            result+=builder.toString().trim()+" ";
+                byte[] intBytes = new byte[4];
+                for (int j = 0; j < 4; j++) {
+                    try {
+                        intBytes[j] = directory.readBuffer();
+                    } catch (ReadOutOfFileException e) {
+                        e.printStackTrace();
+                    }
+                }
+              int index= Util.getIntByBytes(intBytes[0], intBytes[1], intBytes[2], intBytes[3]);
+                result+=descriptors.getDescriptor(index).getFileLength()+" ";
+        }
+        LOGGER.log(Level.INFO,result);
+
+
     }
 
     public void input(String name) {

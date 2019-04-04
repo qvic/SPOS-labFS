@@ -1,11 +1,19 @@
 import fs.FileSystem;
+import util.CommandsReader;
+import util.Config;
+
+import java.io.FileNotFoundException;
 
 public class Main {
 
     public static void main(String[] args) {
         FileSystem fs = new FileSystem();
-        fs.create("hi");
+        try {
+            CommandsReader reader=new CommandsReader(fs);
+            reader.commandsExecution();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
 
-        fs.open("hi");
     }
 }
