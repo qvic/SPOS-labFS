@@ -24,13 +24,11 @@ public class FileDescriptor {
         this.length = length;
     }
 
-    public void add(int... indices) {
+    public void add(int index) {
         if (blockIndexes.size() == Config.BLOCK_INDICES_IN_DESCRIPTOR)
             throw new IllegalStateException("Can't add more indices to block");
 
-        for (int index : indices) {
-            blockIndexes.add(index);
-        }
+        blockIndexes.add(index);
     }
 
     public List<Integer> getBlockIndexes() {

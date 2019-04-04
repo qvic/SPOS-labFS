@@ -22,8 +22,10 @@ public class FileDescriptorsArray {
         }
         ioSystem.writeBlock(0, bitMap.asBlock());
 
-        this.emptyDescriptor = new FileDescriptor(0);
-        emptyDescriptor.add(0);
+        emptyDescriptor = new FileDescriptor(0);
+        for (int i = 0; i < Config.BLOCK_INDICES_IN_DESCRIPTOR; i++) {
+            emptyDescriptor.add(0);
+        }
     }
 
     public void addDescriptor(int descriptorIndex) throws FullDiskException {
