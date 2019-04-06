@@ -26,5 +26,6 @@ public class Config {
     public static final int BLOCKS_FOR_DESCRIPTORS = Integer.parseInt(properties.getProperty("blocksForDescriptors"));
     public static final int BLOCK_INDICES_IN_DESCRIPTOR = Integer.parseInt(properties.getProperty("blockIndicesInDescriptor"));
     public static final int DESCRIPTORS_IN_BLOCK = Integer.parseInt(properties.getProperty("descriptorsInBlock"));
-    public static final String COMMANDS_FILE_PATH=properties.getProperty("commandsFilePath");
+    public static final int MAX_OPEN_FILE_ENTRIES = Integer.parseInt(properties.getProperty("maxOpenFileEntries"));
+    public static final String COMMANDS_FILE_PATH = properties.getProperty("commandsFilePath");
 }

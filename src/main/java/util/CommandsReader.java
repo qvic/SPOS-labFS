@@ -7,77 +7,93 @@ import java.io.FileNotFoundException;
 import java.util.Scanner;
 
 public class CommandsReader {
-    FileSystem fs;
-    Scanner scanner;
+
+    private FileSystem fs;
+    private Scanner scanner;
 
     public CommandsReader(FileSystem fs) throws FileNotFoundException {
-        this.fs=fs;
-        File commands=new File(Config.COMMANDS_FILE_PATH);
-        scanner=new Scanner(commands);
+        this.fs = fs;
+        File commands = new File(Config.COMMANDS_FILE_PATH);
+        scanner = new Scanner(commands);
     }
-    public void commandsExecution(){
-        while(scanner.hasNext()) {
+
+    public void commandsExecution() {
+        while (scanner.hasNext()) {
             String command = scanner.next();
-            if(command.equals("cd")){
-                if(scanner.hasNext()){
-                    String name=scanner.next();
-                    fs.create(name);
-                }
-            }
-            if (command.equals("de")) {
-                if(scanner.hasNext()){
-                    String name=scanner.next();
-                    fs.destroy(name);
-                }
-            }
-            if (command.equals("op")) {
-                if(scanner.hasNext()){
-                    String name=scanner.next();
-                    fs.open(name);
-                }
-            }
-            if (command.equals("cl")) {
-                if (scanner.hasNextInt()) {
-                    int index=scanner.nextInt();
-                    fs.close(index);
-                }
-            }
-            if (command.equals("rd")) {
-                if (scanner.hasNextInt()) {
-                    int index = scanner.nextInt();
-                    if (scanner.hasNextInt()) {
-                        int count = scanner.nextInt();
-                        fs.read(index,count);
+            switch (command) {
+                case "cr":
+                    if (scanner.hasNext()) {
+                        String name = scanner.next();
+                        fs.create(name);
                     }
-                }
-            }
-            if (command.equals("wr")) {
-                if (scanner.hasNextInt()) {
-                    int index = scanner.nextInt();
-                    if (scanner.hasNext(".")) {
-                        char data = scanner.next().charAt(0);
-                        if(scanner.hasNextInt()){
-                            int count=scanner.nextInt();
-                            fs.write(index,(byte)data,count);
+                    break;
+                case "de":
+                    if (scanner.hasNext()) {
+                        String name = scanner.next();
+                        fs.destroy(name);
+                    }
+                    break;
+                case "op":
+                    if (scanner.hasNext()) {
+                        String name = scanner.next();
+                        fs.open(name);
+                    }
+                    break;
+                case "cl":
+                    if (scanner.hasNextInt()) {
+                        int index = scanner.nextInt();
+                        fs.close(index);
+                    }
+                    break;
+                case "rd":
+                    if (scanner.hasNextInt()) {
+                        int index = scanner.nextInt();
+                        if (scanner.hasNextInt()) {
+                            int count = scanner.nextInt();
+                            fs.read(index, count);
                         }
                     }
-                }
-            }
-
-            if (command.equals("sk")) {
-                if (scanner.hasNextInt()) {
-                    int index = scanner.nextInt();
+                    break;
+                case "wr":
                     if (scanner.hasNextInt()) {
-                        int pos = scanner.nextInt();
-                        fs.seek(index,pos);
+                        int index = scanner.nextInt();
+                        if (scanner.hasNext(".")) {
+                            char data = scanner.next().charAt(0);
+                            if (scanner.hasNextInt()) {
+                                int count = scanner.nextInt();
+                                fs.write(index, (byte) data, count);
+                            }
+                        }
                     }
-                }
-            }
-
-            if (command.equals("dr")) {
-                fs.directory();
+                    break;
+                case "sk":
+                    if (scanner.hasNextInt()) {
+                        int index = scanner.nextInt();
+                        if (scanner.hasNextInt()) {
+                            int pos = scanner.nextInt();
+                            fs.seek(index, pos);
+                        }
+                    }
+                    break;
+                case "dr":
+                    fs.directory();
+                    break;
+                case "sv":
+                    if (scanner.hasNext()) {
+                        String name = scanner.next();
+                        fs.save(name);
+                    }
+                    break;
+                case "in":
+                    if (scanner.hasNext()) {
+                        String name = scanner.next();
+                        fs.input(name);
+                    }
+                    break;
+                default:
+                    throw new IllegalStateException("Unexpected value: " + command);
             }
         }
-       scanner.close();
+        scanner.close();
     }
 }

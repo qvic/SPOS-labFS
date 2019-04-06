@@ -34,9 +34,13 @@ public class FileSystem {
         try {
             descriptors.addDescriptor(directoryDescriptorIndex);
         } catch (FullDiskException e) {
-            throw new RuntimeException("Disk is full on start");
+            throw new IllegalStateException("Disk is full on start");
         }
-        int directoryOftIndex = oft.addEntry(directoryDescriptorIndex);
+        try {
+            oft.addEntry(directoryDescriptorIndex);
+        } catch (NoFreeOpenFileEntriesException e) {
+            throw new IllegalStateException("No free OFT entries on start");
+        }
     }
 
     public void create(String name) {
@@ -65,48 +69,48 @@ public class FileSystem {
         }
         try {
             writeDirectoryEntry(freeDirectoryEntry, name, freeDescriptorIndex);
-        } catch (SeekOutOfFileException e) {
-            e.printStackTrace();
         } catch (FullDiskException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.WARNING, "Disk is full");
         } catch (FullDescriptorException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.WARNING, "No free descriptors left");
         }
     }
 
     public void destroy(String name) {
         LOGGER.log(Level.INFO, String.format("Destroy: name=%s", name));
-        int directoryEntry = findDirectoryEntryByName(name);
-        byte[] bytes=new byte[4];
+
+        int directoryEntry = 0;
+        try {
+            directoryEntry = findDirectoryEntryByName(name);
+        } catch (NoSuchDirectoryEntryException e) {
+            LOGGER.log(Level.WARNING, String.format("Directory %s was not found", name));
+            return;
+        }
+
+        byte[] bytes = new byte[4];
         OpenFileTableEntry directory = oft.getEntry(0);
         try {
-            directory.seekBuffer(4*2*directoryEntry+4);
-        } catch (SeekOutOfFileException e) {
-            e.printStackTrace();
-        }
-        for (int i = 0; i <4; i++) {
-            try {
-                bytes[i]=directory.readBuffer();
-            } catch (ReadOutOfFileException e) {
-                e.printStackTrace();
+            directory.seekBuffer(4 * 2 * directoryEntry + 4);
+            for (int i = 0; i < 4; i++) {
+                bytes[i] = directory.readBuffer();
+
             }
+        } catch (ReadOutOfFileException | SeekOutOfFileException e) {
+            throw new IllegalStateException("Can't read directory");
         }
-        int descriptorIndex = Util.getIntByBytes(bytes[0],bytes[1],bytes[2],bytes[3]);
+
+        int descriptorIndex = Util.getIntByBytes(bytes[0], bytes[1], bytes[2], bytes[3]);
         try {
-            directory.seekBuffer(4*2*directoryEntry+4);
-        } catch (SeekOutOfFileException e) {
-            e.printStackTrace();
-        }
-        byte[] zero=Util.getBytesByInt(0);
-        for (int i = 0; i <4; i++) {
-            try {
+            directory.seekBuffer(4 * 2 * directoryEntry + 4);
+
+            byte[] zero = Util.getBytesByInt(0);
+            for (int i = 0; i < 4; i++) {
                 directory.writeToBuffer(zero[i]);
-            } catch (FullDiskException e) {
-                e.printStackTrace();
-            } catch (FullDescriptorException e) {
-                e.printStackTrace();
             }
+        } catch (SeekOutOfFileException | FullDiskException | FullDescriptorException e) {
+            throw new IllegalStateException("Can't read directory");
         }
+
         descriptors.removeDescriptor(descriptorIndex);
 
     }
@@ -117,38 +121,69 @@ public class FileSystem {
         int fileDescriptor = 0;
         try {
             fileDescriptor = findFileDescriptor(name);
-        } catch (SeekOutOfFileException e) {
-            e.printStackTrace();
-        } catch (ReadOutOfFileException e) {
-            e.printStackTrace();
+        } catch (NoSuchDescriptorException e) {
+            LOGGER.log(Level.WARNING, String.format("Descriptor for file %s was not found", name));
+            return;
         }
-        int i = oft.addEntry(fileDescriptor);
-        LOGGER.log(Level.INFO, String.format("OFT index: %d", i));
+
+        int i = 0;
+        try {
+            i = oft.addEntry(fileDescriptor);
+        } catch (NoFreeOpenFileEntriesException e) {
+            LOGGER.log(Level.WARNING, String.format("Free OFT entry for file %s was not found", name));
+            return;
+        }
+        LOGGER.log(Level.INFO, String.format("OFT index=%d", i));
     }
 
     public void close(int index) {
         LOGGER.log(Level.INFO, String.format("Close: index=%d", index));
+
+        try {
+            oft.removeEntry(index);
+        } catch (IndexOutOfBoundsException e) {
+            LOGGER.log(Level.WARNING, String.format("OFT entry for index %d was not found", index));
+        }
     }
 
     public void read(int index, int count) {
         LOGGER.log(Level.INFO, String.format("Read: index=%d, count=%d", index, count));
 
+        OpenFileTableEntry entry;
+        try {
+            entry = oft.getEntry(index);
+        } catch (IndexOutOfBoundsException e) {
+            LOGGER.log(Level.WARNING, String.format("OFT entry for index %d was not found", index));
+            return;
+        }
+
+        StringBuilder builder = new StringBuilder();
         for (int i = 0; i < count; i++) {
             try {
-                byte b = oft.getEntry(index).readBuffer();
-                LOGGER.log(Level.INFO, String.format("Read byte: %s", (char)b));
+                byte b = entry.readBuffer();
+                builder.append((char) b);
             } catch (ReadOutOfFileException e) {
-                LOGGER.log(Level.WARNING, "Nothing to read");
+                LOGGER.log(Level.WARNING, String.format("Nothing to read, read only %d of total %d bytes", i, count));
+                break;
             }
         }
+        LOGGER.log(Level.INFO, String.format("Read string: %s", builder.toString()));
     }
 
     public void write(int index, byte data, int count) {
         LOGGER.log(Level.INFO, String.format("Write: index=%d, data=%c, count=%d", index, data, count));
 
+        OpenFileTableEntry entry;
+        try {
+            entry = oft.getEntry(index);
+        } catch (IndexOutOfBoundsException e) {
+            LOGGER.log(Level.WARNING, String.format("OFT entry for index %d was not found", index));
+            return;
+        }
+
         for (int i = 0; i < count; i++) {
             try {
-                oft.getEntry(index).writeToBuffer(data);
+                entry.writeToBuffer(data);
             } catch (FullDiskException e) {
                 LOGGER.log(Level.WARNING, String.format("Disk is full, written only %d of total %d bytes", i, count));
                 return;
@@ -162,18 +197,25 @@ public class FileSystem {
     public void seek(int index, int position) {
         LOGGER.log(Level.INFO, String.format("Seek: index=%d, position=%d", index, position));
 
+        OpenFileTableEntry entry;
         try {
-            oft.getEntry(index).seekBuffer(position);
+            entry = oft.getEntry(index);
+        } catch (IndexOutOfBoundsException e) {
+            LOGGER.log(Level.WARNING, String.format("OFT entry for index %d was not found", index));
+            return;
+        }
+
+        try {
+            entry.seekBuffer(position);
         } catch (SeekOutOfFileException e) {
             LOGGER.log(Level.WARNING, "Seek position is out of bounds");
         }
     }
 
     public void directory() {
-        LOGGER.log(Level.INFO, "Directory");
         OpenFileTableEntry directory = oft.getEntry(0);
         int numberOfEntries = directory.getFileLength() / (4 * 2);
-        String result="";
+        String result = "";
         for (int i = 0; i < numberOfEntries; i++) {
             try {
                 directory.seekBuffer(i * 4 * 2);
@@ -190,75 +232,104 @@ public class FileSystem {
                     return;
                 }
             }
-            result+=builder.toString().trim()+" ";
-                byte[] intBytes = new byte[4];
-                for (int j = 0; j < 4; j++) {
-                    try {
-                        intBytes[j] = directory.readBuffer();
-                    } catch (ReadOutOfFileException e) {
-                        e.printStackTrace();
-                    }
+            result += builder.toString().trim() + " ";
+            byte[] intBytes = new byte[4];
+            for (int j = 0; j < 4; j++) {
+                try {
+                    intBytes[j] = directory.readBuffer();
+                } catch (ReadOutOfFileException e) {
+                    e.printStackTrace();
                 }
-              int index= Util.getIntByBytes(intBytes[0], intBytes[1], intBytes[2], intBytes[3]);
-                result+=descriptors.getDescriptor(index).getFileLength()+" ";
+            }
+            int index = Util.getIntByBytes(intBytes[0], intBytes[1], intBytes[2], intBytes[3]);
+            result += "(size="+descriptors.getDescriptor(index).getFileLength() + ")";
+            if (i < numberOfEntries - 1) result += ", ";
         }
-        LOGGER.log(Level.INFO,result);
-
-
+        LOGGER.log(Level.INFO, "Directory: " + result);
     }
 
     public void input(String name) {
         LOGGER.log(Level.INFO, String.format("Input: name=%s", name));
+
+        oft.closeAll();
+        ioSystem.updateFromFile(name);
+
+        try {
+            oft.addEntry(0); // directory
+        } catch (NoFreeOpenFileEntriesException e) {
+            throw new IllegalStateException("No free entries after closeAll");
+        }
     }
 
     public void save(String name) {
         LOGGER.log(Level.INFO, String.format("Save: name=%s", name));
+
+        oft.closeAll();
+        ioSystem.dumpToFile(name);
+
+        try {
+            oft.addEntry(0); // directory
+        } catch (NoFreeOpenFileEntriesException e) {
+            throw new IllegalStateException("No free entries after closeAll");
+        }
     }
 
-    private int findFileDescriptor(String name) throws SeekOutOfFileException, ReadOutOfFileException {
+    private int findFileDescriptor(String name) throws NoSuchDescriptorException {
         if (name.length() > 4) throw new IllegalArgumentException("Name is too long");
 
         OpenFileTableEntry directory = oft.getEntry(0);
 
         int numberOfEntries = directory.getFileLength() / (4 * 2);
         for (int i = 0; i < numberOfEntries; i++) {
-            directory.seekBuffer(i * 4 * 2);
+            try {
+                directory.seekBuffer(i * 4 * 2);
+            } catch (SeekOutOfFileException e) {
+                throw new IllegalStateException();
+            }
             StringBuilder builder = new StringBuilder();
             for (int j = 0; j < 4; j++) {
-                builder.append((char) directory.readBuffer());
+                try {
+                    builder.append((char) directory.readBuffer());
+                } catch (ReadOutOfFileException e) {
+                    throw new IllegalStateException();
+                }
             }
             if (builder.toString().trim().equals(name)) {
                 byte[] intBytes = new byte[4];
                 for (int j = 0; j < 4; j++) {
-                    intBytes[j] = directory.readBuffer();
+                    try {
+                        intBytes[j] = directory.readBuffer();
+                    } catch (ReadOutOfFileException e) {
+                        throw new IllegalStateException();
+                    }
                 }
                 return Util.getIntByBytes(intBytes[0], intBytes[1], intBytes[2], intBytes[3]);
             }
         }
-        return 0;
+        throw new NoSuchDescriptorException();
     }
 
-    private int findDirectoryEntryByName(String name) {
+    private int findDirectoryEntryByName(String name) throws NoSuchDirectoryEntryException {
         OpenFileTableEntry directory = oft.getEntry(0);
         if (name.length() > 4) throw new IllegalArgumentException("Name is too long");
         for (int i = 0; i < directory.getFileLength() / 8; i++) {
             try {
-                directory.seekBuffer(i * 2 *4 );
+                directory.seekBuffer(i * 2 * 4);
             } catch (SeekOutOfFileException e) {
-                LOGGER.log(Level.WARNING, "Seek position is out of bounds");
+                throw new IllegalStateException("Can't seek to position in file");
             }
             byte[] bytes = new byte[4];
             for (int j = 0; j < 4; j++) {
                 try {
                     bytes[j] = directory.readBuffer();
                 } catch (ReadOutOfFileException e) {
-                    LOGGER.log(Level.WARNING, "");
+                    throw new IllegalStateException("Can't read from position in file");
                 }
             }
 
-            if (Arrays.equals(bytes,name.getBytes())) return i;
+            if (Arrays.equals(bytes, name.getBytes())) return i;
         }
-        throw new IllegalArgumentException("File with such name does not exist");
+        throw new NoSuchDirectoryEntryException();
     }
 
     private int findFreeDirectoryEntry() throws NoFreeDirectoryEntryException {
@@ -267,7 +338,7 @@ public class FileSystem {
             return directory.getFileLength() / 8;
         for (int i = 0; i < directory.getFileLength() / 8; i++) {
             try {
-                directory.seekBuffer(i * 2 *4 + 4);
+                directory.seekBuffer(i * 2 * 4 + 4);
             } catch (SeekOutOfFileException e) {
                 LOGGER.log(Level.WARNING, "Seek position is out of bounds");
             }
@@ -286,12 +357,16 @@ public class FileSystem {
         throw new NoFreeDirectoryEntryException();
     }
 
-    private void writeDirectoryEntry(int freeDirectoryEntry, String name, int freeDescriptorIndex) throws SeekOutOfFileException, FullDiskException, FullDescriptorException {
+    private void writeDirectoryEntry(int freeDirectoryEntry, String name, int freeDescriptorIndex) throws FullDiskException, FullDescriptorException {
         if (name.length() > 4) throw new IllegalArgumentException("Name is too long");
 
         OpenFileTableEntry directory = oft.getEntry(0);
 
-        directory.seekBuffer(4 * 2 * freeDirectoryEntry);
+        try {
+            directory.seekBuffer(4 * 2 * freeDirectoryEntry);
+        } catch (SeekOutOfFileException e) {
+            throw new IllegalArgumentException("Passed directory entry index can't be written");
+        }
         byte[] nameBytes = name.getBytes();
         for (byte nameByte : nameBytes) {
             directory.writeToBuffer(nameByte);
