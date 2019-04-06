@@ -26,7 +26,7 @@ public class IOSystem {
         LOGGER.log(Level.INFO, String.format("Update from file: %s", filename));
         RandomAccessFile disk;
         try {
-            disk = new RandomAccessFile(filename, "rw");
+            disk = new RandomAccessFile(filename, "r");
         } catch (FileNotFoundException e) {
             LOGGER.log(Level.WARNING, String.format("File %s not found", filename));
             return;
