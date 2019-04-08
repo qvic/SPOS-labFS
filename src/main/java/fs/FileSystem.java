@@ -45,35 +45,14 @@ public class FileSystem {
 
     public void create(String name) {
         LOGGER.log(Level.INFO, String.format("Create: name=%s", name));
-
-        int freeDescriptorIndex;
         try {
-            freeDescriptorIndex = descriptors.findFreeDescriptorIndex();
-        } catch (NoFreeDescriptorsException e) {
-            LOGGER.log(Level.WARNING, "No free descriptors left");
-            return;
-        }
-        try {
-            descriptors.addDescriptor(freeDescriptorIndex);
-        } catch (FullDiskException e) {
-            LOGGER.log(Level.WARNING, "Disk is full");
-            return;
+            findDirectoryEntryByName(name);
+            LOGGER.log(Level.WARNING,"File already exists");
+        } catch (NoSuchDirectoryEntryException e) {
+            createIfNotExist(name);
         }
 
-        int freeDirectoryEntry = 0;
-        try {
-            freeDirectoryEntry = findFreeDirectoryEntry();
-        } catch (NoFreeDirectoryEntryException e) {
-            LOGGER.log(Level.WARNING, "No free directory entry left");
-            return;
-        }
-        try {
-            writeDirectoryEntry(freeDirectoryEntry, name, freeDescriptorIndex);
-        } catch (FullDiskException e) {
-            LOGGER.log(Level.WARNING, "Disk is full");
-        } catch (FullDescriptorException e) {
-            LOGGER.log(Level.WARNING, "No free descriptors left");
-        }
+
     }
 
     public void destroy(String name) {
@@ -89,6 +68,12 @@ public class FileSystem {
 
         byte[] bytes = new byte[4];
         OpenFileTableEntry directory = oft.getEntry(0);
+        try {
+            directory.seekBuffer(4 * 2 * directoryEntry);
+            directory.writeToBuffer((byte) 0);
+        } catch (SeekOutOfFileException | FullDiskException | FullDescriptorException e) {
+            throw new IllegalStateException("Can't read directory");
+        }
         try {
             directory.seekBuffer(4 * 2 * directoryEntry + 4);
             for (int i = 0; i < 4; i++) {
@@ -232,6 +217,7 @@ public class FileSystem {
                     return;
                 }
             }
+            if(builder.toString().getBytes()[0]==0) continue;
             result += builder.toString().trim() + " ";
             byte[] intBytes = new byte[4];
             for (int j = 0; j < 4; j++) {
@@ -242,7 +228,7 @@ public class FileSystem {
                 }
             }
             int index = Util.getIntByBytes(intBytes[0], intBytes[1], intBytes[2], intBytes[3]);
-            result += "(size="+descriptors.getDescriptor(index).getFileLength() + ")";
+            result += "(size=" + descriptors.getDescriptor(index).getFileLength() + ")";
             if (i < numberOfEntries - 1) result += ", ";
         }
         LOGGER.log(Level.INFO, "Directory: " + result);
@@ -309,6 +295,38 @@ public class FileSystem {
         throw new NoSuchDescriptorException();
     }
 
+    private void createIfNotExist(String name) {
+        int freeDescriptorIndex;
+        try {
+            freeDescriptorIndex = descriptors.findFreeDescriptorIndex();
+        } catch (NoFreeDescriptorsException e) {
+            LOGGER.log(Level.WARNING, "No free descriptors left");
+            return;
+        }
+        try {
+            descriptors.addDescriptor(freeDescriptorIndex);
+        } catch (FullDiskException e) {
+            LOGGER.log(Level.WARNING, "Disk is full");
+            return;
+        }
+
+        int freeDirectoryEntry = 0;
+        try {
+            freeDirectoryEntry = findFreeDirectoryEntry();
+        } catch (NoFreeDirectoryEntryException e) {
+            LOGGER.log(Level.WARNING, "No free directory entry left");
+            return;
+        }
+        try {
+            writeDirectoryEntry(freeDirectoryEntry, name, freeDescriptorIndex);
+        } catch (FullDiskException e) {
+            LOGGER.log(Level.WARNING, "Disk is full");
+        } catch (FullDescriptorException e) {
+            LOGGER.log(Level.WARNING, "No free descriptors left");
+        }
+
+    }
+
     private int findDirectoryEntryByName(String name) throws NoSuchDirectoryEntryException {
         OpenFileTableEntry directory = oft.getEntry(0);
         if (name.length() > 4) throw new IllegalArgumentException("Name is too long");
@@ -327,9 +345,10 @@ public class FileSystem {
                 }
             }
 
-            if (Arrays.equals(bytes, name.getBytes())) return i;
+            if (bytes[0] != 0 && new String(bytes).trim().equals(name)) return i;
         }
         throw new NoSuchDirectoryEntryException();
+
     }
 
     private int findFreeDirectoryEntry() throws NoFreeDirectoryEntryException {
@@ -338,20 +357,17 @@ public class FileSystem {
             return directory.getFileLength() / 8;
         for (int i = 0; i < directory.getFileLength() / 8; i++) {
             try {
-                directory.seekBuffer(i * 2 * 4 + 4);
+                directory.seekBuffer(i * 2 * 4);
             } catch (SeekOutOfFileException e) {
                 LOGGER.log(Level.WARNING, "Seek position is out of bounds");
             }
-            byte[] bytes = new byte[LogicalBlock.BYTES_IN_INT];
-            for (int j = 0; j < LogicalBlock.BYTES_IN_INT; j++) {
-                try {
-                    bytes[j] = directory.readBuffer();
-                } catch (ReadOutOfFileException e) {
-                    LOGGER.log(Level.WARNING, "Free directory entry reading fails");
-                }
+
+            try {
+                if (directory.readBuffer() == 0) return i;
+            } catch (ReadOutOfFileException e) {
+                LOGGER.log(Level.WARNING, "Free directory entry reading fails");
             }
-            int result = Util.getIntByBytes(bytes[0], bytes[1], bytes[2], bytes[3]);
-            if (result == 0) return i;
+
         }
 
         throw new NoFreeDirectoryEntryException();
