@@ -23,7 +23,6 @@ public class IOSystem {
     }
 
     public void updateFromFile(String filename) {
-        LOGGER.log(Level.INFO, String.format("Update from file: %s", filename));
         RandomAccessFile disk;
         try {
             disk = new RandomAccessFile(filename, "r");
@@ -43,7 +42,6 @@ public class IOSystem {
     }
 
     public void dumpToFile(String filename) {
-        LOGGER.log(Level.INFO, String.format("Dump to file: %s", filename));
         RandomAccessFile disk;
         try {
             disk = new RandomAccessFile(filename, "rw");
