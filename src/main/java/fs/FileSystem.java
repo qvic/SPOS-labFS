@@ -50,8 +50,7 @@ public class FileSystem {
             LOGGER.log(Level.WARNING, "File already exists");
             return false;
         } catch (NoSuchDirectoryEntryException e) {
-            createIfNotExist(name);
-            return true;
+            return createIfNotExist(name);
         }
     }
 
@@ -313,19 +312,19 @@ public class FileSystem {
         throw new NoSuchDescriptorException();
     }
 
-    private void createIfNotExist(String name) {
+    private boolean createIfNotExist(String name) {
         int freeDescriptorIndex;
         try {
             freeDescriptorIndex = descriptors.findFreeDescriptorIndex();
         } catch (NoFreeDescriptorsException e) {
             LOGGER.log(Level.WARNING, "No free descriptors left");
-            return;
+            return false;
         }
         try {
             descriptors.addDescriptor(freeDescriptorIndex);
         } catch (FullDiskException e) {
             LOGGER.log(Level.WARNING, "Disk is full");
-            return;
+            return false;
         }
 
         int freeDirectoryEntry = 0;
@@ -333,16 +332,19 @@ public class FileSystem {
             freeDirectoryEntry = findFreeDirectoryEntry();
         } catch (NoFreeDirectoryEntryException e) {
             LOGGER.log(Level.WARNING, "No free directory entry left");
-            return;
+            return false;
         }
         try {
             writeDirectoryEntry(freeDirectoryEntry, name, freeDescriptorIndex);
         } catch (FullDiskException e) {
             LOGGER.log(Level.WARNING, "Disk is full");
+            return false;
         } catch (FullDescriptorException e) {
             LOGGER.log(Level.WARNING, "No free descriptors left");
+            return false;
         }
 
+        return true;
     }
 
     private int findDirectoryEntryByName(String name) throws NoSuchDirectoryEntryException {

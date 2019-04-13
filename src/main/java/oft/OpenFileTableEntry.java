@@ -40,7 +40,7 @@ public class OpenFileTableEntry {
     }
 
     public void seekBuffer(int position) throws SeekOutOfFileException {
-        if (position > fileLength) {
+        if (position < 0 || position > fileLength) {
             throw new SeekOutOfFileException();
         }
 
