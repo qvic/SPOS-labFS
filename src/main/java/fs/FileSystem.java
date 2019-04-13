@@ -40,6 +40,8 @@ public class FileSystem {
             oft.addEntry(directoryDescriptorIndex);
         } catch (NoFreeOpenFileEntriesException e) {
             throw new IllegalStateException("No free OFT entries on start");
+        } catch (FileAlreadyOpenedException e) {
+            throw new IllegalStateException("Directory is already open");
         }
     }
 
@@ -118,6 +120,9 @@ public class FileSystem {
             i = oft.addEntry(fileDescriptor);
         } catch (NoFreeOpenFileEntriesException e) {
             LOGGER.log(Level.WARNING, String.format("Free OFT entry for file %s was not found", name));
+            return -1;
+        } catch (FileAlreadyOpenedException e) {
+            LOGGER.log(Level.WARNING, String.format("File %s is already open", name));
             return -1;
         }
         LOGGER.log(Level.INFO, String.format("OFT index=%d", i));
@@ -256,6 +261,9 @@ public class FileSystem {
             oft.addEntry(0); // directory
         } catch (NoFreeOpenFileEntriesException e) {
             throw new IllegalStateException("No free entries after closeAll");
+        } catch (FileAlreadyOpenedException e) {
+            throw new IllegalStateException("Directory is open after closeAll");
+
         }
     }
 
@@ -268,7 +276,9 @@ public class FileSystem {
         try {
             oft.addEntry(0); // directory
         } catch (NoFreeOpenFileEntriesException e) {
-            throw new IllegalStateException("No free entries after closeAll");
+            throw new IllegalStateException("No free entries on closeAll");
+        } catch (FileAlreadyOpenedException e) {
+            throw new IllegalStateException("Directory is open after closeAll");
         }
     }
 
