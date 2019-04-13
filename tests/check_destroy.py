@@ -1,15 +1,19 @@
 #!/usr/bin/python3
+import argparse
 
-import sys
+parser = argparse.ArgumentParser()
 
-max_bytes_in_file = int(sys.argv[1])
+parser.add_argument('--file', type=str, default="fs",
+                    help='File where filesystem will be saved')
 
-print("in fs")
+args = parser.parse_args()
+
+print("in " + args.file)
 
 print("de f1")
 
 print("cr f19")
 print("op f19")
-print("wr 1 b {}".format(max_bytes_in_file))
+print("wr 1 b 192")
 
-print("sv fs")
+print("sv " + args.file)

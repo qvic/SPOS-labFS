@@ -40,6 +40,8 @@ public class FileSystem {
             oft.addEntry(directoryDescriptorIndex);
         } catch (NoFreeOpenFileEntriesException e) {
             throw new IllegalStateException("No free OFT entries on start");
+        } catch (FileAlreadyOpenedException e) {
+            throw new IllegalStateException("Directory is already open");
         }
     }
 
@@ -47,7 +49,7 @@ public class FileSystem {
         LOGGER.log(Level.INFO, String.format("Create: name=%s", name));
         try {
             findDirectoryEntryByName(name);
-            LOGGER.log(Level.WARNING,"File already exists");
+            LOGGER.log(Level.WARNING, "File already exists");
         } catch (NoSuchDirectoryEntryException e) {
             createIfNotExist(name);
         }
@@ -116,6 +118,9 @@ public class FileSystem {
             i = oft.addEntry(fileDescriptor);
         } catch (NoFreeOpenFileEntriesException e) {
             LOGGER.log(Level.WARNING, String.format("Free OFT entry for file %s was not found", name));
+            return;
+        } catch (FileAlreadyOpenedException e) {
+            LOGGER.log(Level.WARNING, String.format("File %s is already open", name));
             return;
         }
         LOGGER.log(Level.INFO, String.format("OFT index=%d", i));
@@ -217,7 +222,7 @@ public class FileSystem {
                     return;
                 }
             }
-            if(builder.toString().getBytes()[0]==0) continue;
+            if (builder.toString().getBytes()[0] == 0) continue;
             result += builder.toString().trim() + " ";
             byte[] intBytes = new byte[4];
             for (int j = 0; j < 4; j++) {
@@ -244,6 +249,8 @@ public class FileSystem {
             oft.addEntry(0); // directory
         } catch (NoFreeOpenFileEntriesException e) {
             throw new IllegalStateException("No free entries after closeAll");
+        } catch (FileAlreadyOpenedException e) {
+            throw new IllegalStateException("Directory is open after closeAll");
         }
     }
 
@@ -254,9 +261,11 @@ public class FileSystem {
         ioSystem.dumpToFile(name);
 
         try {
-            oft.addEntry(0); // directory
+            oft.addEntry(0);
         } catch (NoFreeOpenFileEntriesException e) {
-            throw new IllegalStateException("No free entries after closeAll");
+            throw new IllegalStateException("No free entries on closeAll");
+        } catch (FileAlreadyOpenedException e) {
+            throw new IllegalStateException("Directory is open after closeAll");
         }
     }
 

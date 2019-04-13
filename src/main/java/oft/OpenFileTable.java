@@ -1,5 +1,6 @@
 package oft;
 
+import exceptions.FileAlreadyOpenedException;
 import exceptions.NoFreeOpenFileEntriesException;
 import fs.FileDescriptorsArray;
 import io.IOSystem;
@@ -7,6 +8,7 @@ import util.Config;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class OpenFileTable {
 
@@ -22,8 +24,14 @@ public class OpenFileTable {
         this.count = 0;
     }
 
-    public int addEntry(int descriptorIndex) throws NoFreeOpenFileEntriesException {
+    public int addEntry(int descriptorIndex) throws NoFreeOpenFileEntriesException, FileAlreadyOpenedException {
         if (count == Config.MAX_OPEN_FILE_ENTRIES) throw new NoFreeOpenFileEntriesException();
+
+        for (OpenFileTableEntry entry : table) {
+            if (entry != null && entry.getDescriptorIndex() == descriptorIndex) {
+                throw new FileAlreadyOpenedException();
+            }
+        }
 
         OpenFileTableEntry entry = new OpenFileTableEntry(descriptors, ioSystem, descriptorIndex);
         count++;

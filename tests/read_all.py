@@ -1,14 +1,20 @@
 #!/usr/bin/python3
+import argparse
 
-import sys
+parser = argparse.ArgumentParser()
 
-files_number = int(sys.argv[1])
-max_bytes_in_file = int(sys.argv[2])
+parser.add_argument('files_number', type=int,
+                    help='Number of files to be read')
 
-print("in fs")
+parser.add_argument('--file', type=str, default="fs",
+                    help='File where filesystem was saved')
 
-for x in range(1, files_number + 1):
+args = parser.parse_args()
+
+print("in " + args.file)
+
+for x in range(1, args.files_number + 1):
     filename = "f{}".format(x)
     print("op " + filename)
-    print("rd 1 {}".format(max_bytes_in_file))
+    print("rd 1 192")
     print("cl 1")
