@@ -2,13 +2,11 @@ package fs;
 
 import exceptions.*;
 import io.IOSystem;
-import io.LogicalBlock;
 import oft.OpenFileTable;
 import oft.OpenFileTableEntry;
 import util.Config;
 import util.Util;
 
-import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -49,14 +47,12 @@ public class FileSystem {
         LOGGER.log(Level.INFO, String.format("Create: name=%s", name));
         try {
             findDirectoryEntryByName(name);
-            LOGGER.log(Level.WARNING,"File already exists");
+            LOGGER.log(Level.WARNING, "File already exists");
             return false;
         } catch (NoSuchDirectoryEntryException e) {
             createIfNotExist(name);
             return true;
         }
-
-
     }
 
     public boolean destroy(String name) {
@@ -141,7 +137,7 @@ public class FileSystem {
         return true;
     }
 
-    public int read(int index,byte[] mem_area, int count) {
+    public int read(int index, byte[] mem_area, int count) {
         LOGGER.log(Level.INFO, String.format("Read: index=%d, count=%d", index, count));
 
         OpenFileTableEntry entry;
@@ -156,7 +152,7 @@ public class FileSystem {
         for (int i = 0; i < count; i++) {
             try {
                 byte b = entry.readBuffer();
-                mem_area[i]=b;
+                mem_area[i] = b;
                 builder.append((char) b);
             } catch (ReadOutOfFileException e) {
                 LOGGER.log(Level.WARNING, String.format("Nothing to read, read only %d of total %d bytes", i, count));
@@ -168,7 +164,7 @@ public class FileSystem {
     }
 
     public int write(int index, byte[] data, int count) {
-        LOGGER.log(Level.INFO, String.format("Write: index=%d, data=%c, count=%d", index, data, count));
+        LOGGER.log(Level.INFO, String.format("Write: index=%d, data=%s, count=%d", index, new String(data), count));
 
         OpenFileTableEntry entry;
         try {
@@ -232,7 +228,7 @@ public class FileSystem {
                     return " ";
                 }
             }
-            if(builder.toString().getBytes()[0]==0) continue;
+            if (builder.toString().getBytes()[0] == 0) continue;
             result += builder.toString().trim() + " ";
             byte[] intBytes = new byte[4];
             for (int j = 0; j < 4; j++) {
