@@ -43,19 +43,21 @@ public class FileSystem {
         }
     }
 
-    public void create(String name) {
+    public boolean create(String name) {
         LOGGER.log(Level.INFO, String.format("Create: name=%s", name));
         try {
             findDirectoryEntryByName(name);
             LOGGER.log(Level.WARNING,"File already exists");
+            return false;
         } catch (NoSuchDirectoryEntryException e) {
             createIfNotExist(name);
+            return true;
         }
 
 
     }
 
-    public void destroy(String name) {
+    public boolean destroy(String name) {
         LOGGER.log(Level.INFO, String.format("Destroy: name=%s", name));
 
         int directoryEntry = 0;
@@ -63,7 +65,7 @@ public class FileSystem {
             directoryEntry = findDirectoryEntryByName(name);
         } catch (NoSuchDirectoryEntryException e) {
             LOGGER.log(Level.WARNING, String.format("Directory %s was not found", name));
-            return;
+            return false;
         }
 
         byte[] bytes = new byte[4];
@@ -97,10 +99,10 @@ public class FileSystem {
         }
 
         descriptors.removeDescriptor(descriptorIndex);
-
+        return true;
     }
 
-    public void open(String name) {
+    public int open(String name) {
         LOGGER.log(Level.INFO, String.format("Open: name=%s", name));
 
         int fileDescriptor = 0;
@@ -108,7 +110,7 @@ public class FileSystem {
             fileDescriptor = findFileDescriptor(name);
         } catch (NoSuchDescriptorException e) {
             LOGGER.log(Level.WARNING, String.format("Descriptor for file %s was not found", name));
-            return;
+            return -1;
         }
 
         int i = 0;
@@ -116,22 +118,25 @@ public class FileSystem {
             i = oft.addEntry(fileDescriptor);
         } catch (NoFreeOpenFileEntriesException e) {
             LOGGER.log(Level.WARNING, String.format("Free OFT entry for file %s was not found", name));
-            return;
+            return -1;
         }
         LOGGER.log(Level.INFO, String.format("OFT index=%d", i));
+        return i;
     }
 
-    public void close(int index) {
+    public boolean close(int index) {
         LOGGER.log(Level.INFO, String.format("Close: index=%d", index));
 
         try {
             oft.removeEntry(index);
         } catch (IndexOutOfBoundsException e) {
             LOGGER.log(Level.WARNING, String.format("OFT entry for index %d was not found", index));
+            return false;
         }
+        return true;
     }
 
-    public void read(int index, int count) {
+    public int read(int index,byte[] mem_area, int count) {
         LOGGER.log(Level.INFO, String.format("Read: index=%d, count=%d", index, count));
 
         OpenFileTableEntry entry;
@@ -139,23 +144,25 @@ public class FileSystem {
             entry = oft.getEntry(index);
         } catch (IndexOutOfBoundsException e) {
             LOGGER.log(Level.WARNING, String.format("OFT entry for index %d was not found", index));
-            return;
+            return -1;
         }
 
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < count; i++) {
             try {
                 byte b = entry.readBuffer();
+                mem_area[i]=b;
                 builder.append((char) b);
             } catch (ReadOutOfFileException e) {
                 LOGGER.log(Level.WARNING, String.format("Nothing to read, read only %d of total %d bytes", i, count));
-                break;
+                return i;
             }
         }
         LOGGER.log(Level.INFO, String.format("Read string: %s", builder.toString()));
+        return count;
     }
 
-    public void write(int index, byte data, int count) {
+    public int write(int index, byte[] data, int count) {
         LOGGER.log(Level.INFO, String.format("Write: index=%d, data=%c, count=%d", index, data, count));
 
         OpenFileTableEntry entry;
@@ -163,23 +170,24 @@ public class FileSystem {
             entry = oft.getEntry(index);
         } catch (IndexOutOfBoundsException e) {
             LOGGER.log(Level.WARNING, String.format("OFT entry for index %d was not found", index));
-            return;
+            return -1;
         }
 
         for (int i = 0; i < count; i++) {
             try {
-                entry.writeToBuffer(data);
+                entry.writeToBuffer(data[i]);
             } catch (FullDiskException e) {
                 LOGGER.log(Level.WARNING, String.format("Disk is full, written only %d of total %d bytes", i, count));
-                return;
+                return i;
             } catch (FullDescriptorException e) {
                 LOGGER.log(Level.WARNING, "Descriptor is full, can't add more blocks");
-                return;
+                return i;
             }
         }
+        return count;
     }
 
-    public void seek(int index, int position) {
+    public boolean seek(int index, int position) {
         LOGGER.log(Level.INFO, String.format("Seek: index=%d, position=%d", index, position));
 
         OpenFileTableEntry entry;
@@ -187,17 +195,19 @@ public class FileSystem {
             entry = oft.getEntry(index);
         } catch (IndexOutOfBoundsException e) {
             LOGGER.log(Level.WARNING, String.format("OFT entry for index %d was not found", index));
-            return;
+            return false;
         }
 
         try {
             entry.seekBuffer(position);
         } catch (SeekOutOfFileException e) {
             LOGGER.log(Level.WARNING, "Seek position is out of bounds");
+            return false;
         }
+        return true;
     }
 
-    public void directory() {
+    public String directory() {
         OpenFileTableEntry directory = oft.getEntry(0);
         int numberOfEntries = directory.getFileLength() / (4 * 2);
         String result = "";
@@ -206,7 +216,7 @@ public class FileSystem {
                 directory.seekBuffer(i * 4 * 2);
             } catch (SeekOutOfFileException e) {
                 LOGGER.log(Level.WARNING, "Seek position is out of bounds");
-                return;
+                return " ";
             }
             StringBuilder builder = new StringBuilder();
             for (int j = 0; j < 4; j++) {
@@ -214,7 +224,7 @@ public class FileSystem {
                     builder.append((char) directory.readBuffer());
                 } catch (ReadOutOfFileException e) {
                     e.printStackTrace();
-                    return;
+                    return " ";
                 }
             }
             if(builder.toString().getBytes()[0]==0) continue;
@@ -225,6 +235,7 @@ public class FileSystem {
                     intBytes[j] = directory.readBuffer();
                 } catch (ReadOutOfFileException e) {
                     e.printStackTrace();
+                    return " ";
                 }
             }
             int index = Util.getIntByBytes(intBytes[0], intBytes[1], intBytes[2], intBytes[3]);
@@ -232,6 +243,7 @@ public class FileSystem {
             if (i < numberOfEntries - 1) result += ", ";
         }
         LOGGER.log(Level.INFO, "Directory: " + result);
+        return result;
     }
 
     public void input(String name) {

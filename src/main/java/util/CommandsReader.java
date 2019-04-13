@@ -1,18 +1,18 @@
 package util;
 
 import fs.FileSystem;
+import shell.Shell;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
 
 public class CommandsReader {
-
-    private FileSystem fs;
+    private Shell shell;
     private Scanner scanner;
 
-    public CommandsReader(FileSystem fs) throws FileNotFoundException {
-        this.fs = fs;
+    public CommandsReader(Shell shell) throws FileNotFoundException {
+        this.shell = shell;
         if (Config.READ_COMMANDS_FROM_FILE) {
             File commands = new File(Config.COMMANDS_FILE_PATH);
             scanner = new Scanner(commands);
@@ -28,25 +28,25 @@ public class CommandsReader {
                 case "cr":
                     if (scanner.hasNext()) {
                         String name = scanner.next();
-                        fs.create(name);
+                        shell.create(name);
                     }
                     break;
                 case "de":
                     if (scanner.hasNext()) {
                         String name = scanner.next();
-                        fs.destroy(name);
+                        shell.destroy(name);
                     }
                     break;
                 case "op":
                     if (scanner.hasNext()) {
                         String name = scanner.next();
-                        fs.open(name);
+                        shell.open(name);
                     }
                     break;
                 case "cl":
                     if (scanner.hasNextInt()) {
                         int index = scanner.nextInt();
-                        fs.close(index);
+                        shell.close(index);
                     }
                     break;
                 case "rd":
@@ -54,7 +54,7 @@ public class CommandsReader {
                         int index = scanner.nextInt();
                         if (scanner.hasNextInt()) {
                             int count = scanner.nextInt();
-                            fs.read(index, count);
+                            shell.read(index, count);
                         }
                     }
                     break;
@@ -65,7 +65,7 @@ public class CommandsReader {
                             char data = scanner.next().charAt(0);
                             if (scanner.hasNextInt()) {
                                 int count = scanner.nextInt();
-                                fs.write(index, (byte) data, count);
+                                shell.write(index, (byte) data, count);
                             }
                         }
                     }
@@ -75,23 +75,23 @@ public class CommandsReader {
                         int index = scanner.nextInt();
                         if (scanner.hasNextInt()) {
                             int pos = scanner.nextInt();
-                            fs.seek(index, pos);
+                            shell.lseek(index, pos);
                         }
                     }
                     break;
                 case "dr":
-                    fs.directory();
+                    shell.directory();
                     break;
                 case "sv":
                     if (scanner.hasNext()) {
                         String name = scanner.next();
-                        fs.save(name);
+                        shell.save(name);
                     }
                     break;
                 case "in":
                     if (scanner.hasNext()) {
                         String name = scanner.next();
-                        fs.input(name);
+                        shell.init(name);
                     }
                     break;
                 default:
