@@ -28,4 +28,5 @@ public class Config {
     public static final int DESCRIPTORS_IN_BLOCK = Integer.parseInt(properties.getProperty("descriptorsInBlock"));
     public static final int MAX_OPEN_FILE_ENTRIES = Integer.parseInt(properties.getProperty("maxOpenFileEntries"));
     public static final String COMMANDS_FILE_PATH = properties.getProperty("commandsFilePath");
+    public static final boolean READ_COMMANDS_FROM_FILE = Boolean.parseBoolean(properties.getProperty("readCommandsFromFile"));
 }

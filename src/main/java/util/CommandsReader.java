@@ -13,8 +13,12 @@ public class CommandsReader {
 
     public CommandsReader(FileSystem fs) throws FileNotFoundException {
         this.fs = fs;
-        File commands = new File(Config.COMMANDS_FILE_PATH);
-        scanner = new Scanner(commands);
+        if (Config.READ_COMMANDS_FROM_FILE) {
+            File commands = new File(Config.COMMANDS_FILE_PATH);
+            scanner = new Scanner(commands);
+        } else {
+            scanner = new Scanner(System.in);
+        }
     }
 
     public void commandsExecution() {

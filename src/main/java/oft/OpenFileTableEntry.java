@@ -10,7 +10,6 @@ import util.Config;
 
 public class OpenFileTableEntry {
 
-    private int currentPositionInBuffer;
     private int currentPositionInFile;
     private int currentBlockIndex;
     private int fileLength;
@@ -26,7 +25,6 @@ public class OpenFileTableEntry {
         this.ioSystem = ioSystem;
         this.descriptorIndex = descriptorIndex;
         this.currentPositionInFile = 0;
-        this.currentPositionInBuffer = 0;
         this.currentBlockIndex = 0;
         this.fileLength = descriptors.getFileLength(descriptorIndex);
         // read ahead
@@ -37,61 +35,46 @@ public class OpenFileTableEntry {
         return fileLength;
     }
 
-    private void seekBuffer(int position, boolean dump) throws SeekOutOfFileException {
+    public void seekBuffer(int position) throws SeekOutOfFileException {
         if (position > fileLength) {
             throw new SeekOutOfFileException();
         }
 
-        int newBlockIndex = position / Config.BLOCK_SIZE;
-        if (newBlockIndex != currentBlockIndex) {
-            if (dump) {
-                dumpBuffer();
-            }
-
-            if (descriptors.getDescriptor(descriptorIndex).getBlockIndexes().size() > newBlockIndex) {
-                currentBlockIndex = newBlockIndex;
-                updateBuffer();
-            } else {
-                throw new SeekOutOfFileException();
-            }
-        }
-
-        currentPositionInBuffer = position % Config.BLOCK_SIZE;
         currentPositionInFile = position;
     }
 
-    public void seekBuffer(int position) throws SeekOutOfFileException {
-        seekBuffer(position, true);
-    }
-
     public void writeToBuffer(byte data) throws FullDiskException, FullDescriptorException {
-        try {
-            seekBuffer(currentPositionInFile, true);
-        } catch (SeekOutOfFileException e) {
-            descriptors.allocateNewBlock(descriptorIndex);
-
-            try {
-                seekBuffer(currentPositionInFile, false);
-            } catch (SeekOutOfFileException ex) {
-                throw new IllegalStateException("Seek index is out of file after allocating new block");
+        int newBlockIndex = currentPositionInFile / Config.BLOCK_SIZE;
+        if (newBlockIndex != currentBlockIndex) {
+            dumpBuffer();
+            if (fileLength <= currentPositionInFile) {
+                descriptors.allocateNewBlock(descriptorIndex);
             }
+            currentBlockIndex = newBlockIndex;
+            updateBuffer();
         }
+        buffer[currentPositionInFile % Config.BLOCK_SIZE] = data;
         currentPositionInFile++;
-        if (fileLength < currentPositionInFile) {
-            fileLength++;
+        if (currentPositionInFile > fileLength) {
+            fileLength = currentPositionInFile;
         }
-        buffer[currentPositionInBuffer] = data;
     }
 
     public byte readBuffer() throws ReadOutOfFileException {
-        if (currentPositionInFile == fileLength) throw new ReadOutOfFileException();
-        try {
-            seekBuffer(currentPositionInFile);
-        } catch (SeekOutOfFileException e) {
-            throw new ReadOutOfFileException();
+        if (currentPositionInFile >= fileLength) throw new ReadOutOfFileException();
+
+        int newBlockIndex = currentPositionInFile / Config.BLOCK_SIZE;
+        if (newBlockIndex != currentBlockIndex) {
+            dumpBuffer();
+            currentBlockIndex = newBlockIndex;
+            updateBuffer();
         }
+
+        byte b = buffer[currentPositionInFile % Config.BLOCK_SIZE];
+
         currentPositionInFile++;
-        return buffer[currentPositionInBuffer];
+
+        return b;
     }
 
     private void setBuffer(byte[] bytes) {
@@ -99,7 +82,6 @@ public class OpenFileTableEntry {
             throw new IllegalArgumentException("Bytes array must be same size as block");
         }
         buffer = bytes;
-        currentPositionInBuffer = 0;
     }
 
     private void dumpBuffer() {
