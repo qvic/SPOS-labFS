@@ -31,6 +31,10 @@ public class OpenFileTableEntry {
         this.buffer = ioSystem.readBlock(descriptors.getDescriptor(descriptorIndex).getBlockIndexes().get(0)).getBytes();
     }
 
+    public int getDescriptorIndex() {
+        return descriptorIndex;
+    }
+
     public int getFileLength() {
         return fileLength;
     }
