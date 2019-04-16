@@ -7,8 +7,11 @@ import oft.OpenFileTableEntry;
 import util.Config;
 import util.Util;
 
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+
 
 public class FileSystem {
 
@@ -26,6 +29,7 @@ public class FileSystem {
         ioSystem.writeBlock(0, bitMap.asBlock());
 
         descriptors = new FileDescriptorsArray(ioSystem);
+
         oft = new OpenFileTable(descriptors, ioSystem);
 
         int directoryDescriptorIndex = 0;
@@ -207,16 +211,16 @@ public class FileSystem {
         return true;
     }
 
-    public String directory() {
+    public ArrayList<File> directory() {
         OpenFileTableEntry directory = oft.getEntry(0);
         int numberOfEntries = directory.getFileLength() / (4 * 2);
-        String result = "";
+        ArrayList<File> result = new ArrayList<>();
         for (int i = 0; i < numberOfEntries; i++) {
             try {
                 directory.seekBuffer(i * 4 * 2);
             } catch (SeekOutOfFileException e) {
                 LOGGER.log(Level.WARNING, "Seek position is out of bounds");
-                return " ";
+                return null;
             }
             StringBuilder builder = new StringBuilder();
             for (int j = 0; j < 4; j++) {
@@ -224,25 +228,24 @@ public class FileSystem {
                     builder.append((char) directory.readBuffer());
                 } catch (ReadOutOfFileException e) {
                     e.printStackTrace();
-                    return " ";
+                    return null;
                 }
             }
             if (builder.toString().getBytes()[0] == 0) continue;
-            result += builder.toString().trim() + " ";
             byte[] intBytes = new byte[4];
             for (int j = 0; j < 4; j++) {
                 try {
                     intBytes[j] = directory.readBuffer();
                 } catch (ReadOutOfFileException e) {
                     e.printStackTrace();
-                    return " ";
+                    return null;
                 }
             }
             int index = Util.getIntByBytes(intBytes[0], intBytes[1], intBytes[2], intBytes[3]);
-            result += "(size=" + descriptors.getDescriptor(index).getFileLength() + ")";
-            if (i < numberOfEntries - 1) result += ", ";
+
+            int size = descriptors.getDescriptor(index).getFileLength();
+            result.add(new File(builder.toString(), size));
         }
-        LOGGER.log(Level.INFO, "Directory: " + result);
         return result;
     }
 
@@ -320,18 +323,19 @@ public class FileSystem {
             LOGGER.log(Level.WARNING, "No free descriptors left");
             return false;
         }
-        try {
-            descriptors.addDescriptor(freeDescriptorIndex);
-        } catch (FullDiskException e) {
-            LOGGER.log(Level.WARNING, "Disk is full");
-            return false;
-        }
 
         int freeDirectoryEntry = 0;
         try {
             freeDirectoryEntry = findFreeDirectoryEntry();
         } catch (NoFreeDirectoryEntryException e) {
             LOGGER.log(Level.WARNING, "No free directory entry left");
+            return false;
+        }
+
+        try {
+            descriptors.addDescriptor(freeDescriptorIndex);
+        } catch (FullDiskException e) {
+            LOGGER.log(Level.WARNING, "Disk is full");
             return false;
         }
         try {

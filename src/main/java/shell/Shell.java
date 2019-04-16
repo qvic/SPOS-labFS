@@ -1,6 +1,8 @@
 package shell;
 
 import fs.FileSystem;
+import fs.File;
+import java.util.ArrayList;
 
 public class Shell {
     FileSystem fs;
@@ -31,11 +33,12 @@ public class Shell {
     }
 
     public void directory() {
-        String fileList = fs.directory();
-        if (fileList.equals(" "))
-            System.out.println("error");
-        else
+        ArrayList<File> fileList = fs.directory();
+        if (fileList!=null)
             System.out.println("Directory " + fileList);
+        else
+            System.out.println("error");
+
 
     }
 

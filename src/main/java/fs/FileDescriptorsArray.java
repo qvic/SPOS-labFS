@@ -17,12 +17,18 @@ public class FileDescriptorsArray {
 
         BitMap bitMap = BitMap.fromBlock(Config.BLOCKS, ioSystem.readBlock(0));
         int descriptorsOffset = 1;
+        LogicalBlock freeDescriptorsBlock=new LogicalBlock();
+
+        for(int i=0;i<Config.DESCRIPTORS_IN_BLOCK;i++){
+            freeDescriptorsBlock.setInt(i*4,-1);
+        }
         for (int i = 0; i < Config.BLOCKS_FOR_DESCRIPTORS; i++) {
             bitMap.setOccupied(i + descriptorsOffset);
+            ioSystem.writeBlock(i+descriptorsOffset,freeDescriptorsBlock);
         }
         ioSystem.writeBlock(0, bitMap.asBlock());
 
-        emptyDescriptor = new FileDescriptor(0);
+        emptyDescriptor = new FileDescriptor(-1);
         for (int i = 0; i < Config.BLOCK_INDICES_IN_DESCRIPTOR; i++) {
             emptyDescriptor.add(0);
         }
@@ -32,9 +38,9 @@ public class FileDescriptorsArray {
         FileDescriptor descriptor = new FileDescriptor(0);
 
         BitMap bitMap = BitMap.fromBlock(Config.BLOCKS, ioSystem.readBlock(0));
-        int freeBlock = bitMap.findFreeBlock();
+        /*int freeBlock = bitMap.findFreeBlock();
         descriptor.add(freeBlock);
-        bitMap.setOccupied(freeBlock);
+        bitMap.setOccupied(freeBlock);*/
 
         insertDescriptor(descriptor, descriptorIndex);
         ioSystem.writeBlock(0, bitMap.asBlock());

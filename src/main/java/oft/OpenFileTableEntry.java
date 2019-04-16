@@ -16,6 +16,7 @@ public class OpenFileTableEntry {
 
     private byte[] buffer;
     private int descriptorIndex;
+    private boolean bitDirty;
 
     private FileDescriptorsArray descriptors;
     private IOSystem ioSystem;
@@ -25,10 +26,9 @@ public class OpenFileTableEntry {
         this.ioSystem = ioSystem;
         this.descriptorIndex = descriptorIndex;
         this.currentPositionInFile = 0;
-        this.currentBlockIndex = 0;
+        this.currentBlockIndex = -1;
         this.fileLength = descriptors.getFileLength(descriptorIndex);
-        // read ahead
-        this.buffer = ioSystem.readBlock(descriptors.getDescriptor(descriptorIndex).getBlockIndexes().get(0)).getBytes();
+        this.bitDirty = false;
     }
 
     public int getDescriptorIndex() {
@@ -50,7 +50,7 @@ public class OpenFileTableEntry {
     public void writeToBuffer(byte data) throws FullDiskException, FullDescriptorException {
         int newBlockIndex = currentPositionInFile / Config.BLOCK_SIZE;
         if (newBlockIndex != currentBlockIndex) {
-            dumpBuffer();
+            if (bitDirty) dumpBuffer();
             if (fileLength <= currentPositionInFile) {
                 descriptors.allocateNewBlock(descriptorIndex);
             }
@@ -58,6 +58,7 @@ public class OpenFileTableEntry {
             updateBuffer();
         }
         buffer[currentPositionInFile % Config.BLOCK_SIZE] = data;
+        bitDirty = true;
         currentPositionInFile++;
         if (currentPositionInFile > fileLength) {
             fileLength = currentPositionInFile;
@@ -69,7 +70,7 @@ public class OpenFileTableEntry {
 
         int newBlockIndex = currentPositionInFile / Config.BLOCK_SIZE;
         if (newBlockIndex != currentBlockIndex) {
-            dumpBuffer();
+            if (bitDirty) dumpBuffer();
             currentBlockIndex = newBlockIndex;
             updateBuffer();
         }
@@ -103,6 +104,6 @@ public class OpenFileTableEntry {
         FileDescriptor descriptor = descriptors.getDescriptor(descriptorIndex);
         descriptor.setFileLength(fileLength);
         descriptors.insertDescriptor(descriptor, descriptorIndex);
-        dumpBuffer();
+        if (bitDirty) dumpBuffer();
     }
 }

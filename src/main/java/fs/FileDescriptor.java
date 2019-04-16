@@ -56,7 +56,7 @@ public class FileDescriptor {
         int positionInBlockInInts = (1 + Config.BLOCK_INDICES_IN_DESCRIPTOR) * positionInBlock;
         int length = block.getInt(positionInBlockInInts);
 
-        if (length == 0 && block.getInt(positionInBlockInInts + 1) == 0) {
+        if (length == -1) {
             return null;
         }
 
