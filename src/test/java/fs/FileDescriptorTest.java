@@ -2,6 +2,7 @@ package fs;
 
 import io.LogicalBlock;
 import org.junit.jupiter.api.Test;
+import util.Config;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -28,6 +29,9 @@ class FileDescriptorTest {
     @Test
     void fromBlock() {
         LogicalBlock block = new LogicalBlock();
+        for (int i = 0; i < Config.DESCRIPTORS_IN_BLOCK; i++) {
+            block.setInt(i * (1 + Config.BLOCK_INDICES_IN_DESCRIPTOR), -1);
+        }
 
         assertNull(FileDescriptor.fromBlock(block, 0));
 

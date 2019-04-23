@@ -32,6 +32,5 @@ print("cl 1")
 for x in range(1, args.files_number + 1):
     filename = "f{}".format(x + 1)
     print("op " + filename)
-    print("op " + filename)
     print("rd 1 192")
     print("cl 1")

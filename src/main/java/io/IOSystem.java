@@ -64,6 +64,6 @@ public class IOSystem {
     }
 
     public void writeBlock(int index, LogicalBlock block) {
-        blocks[index] = block.getCopy();
+        blocks[index] = block;
     }
 }
